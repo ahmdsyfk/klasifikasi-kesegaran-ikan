@@ -40,3 +40,15 @@ desktop.ini
 .vscode/
 .idea/
 _lab/
+
+# --- Berkas asisten/alat lokal (jangan di-commit) ---
+.claude/
+CLAUDE.md
+CLAUDE.local.md
+.mcp.json
+AGENTS.md
+
+# --- Data turunan besar (dibuat ulang dengan `fishfresh roi`) ---
+data/processed/eye_roi/MFED/
+data/processed/eye_roi/FFE/
+data/processed/eye_roi/qa/

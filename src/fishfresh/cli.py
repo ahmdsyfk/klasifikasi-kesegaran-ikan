@@ -71,14 +71,20 @@ def cmd_prepare(args, cfg):
     mfed = _verified(cfg, "MFED", cfg["paths"]["mfed_dir"], args.force)
     clean, report = deduplicate(mfed, cfg)
     dibuang = [report.pop("_dibuang")]
+    # Split ditetapkan SEBELUM filter kualitas agar pembagian identik untuk semua skenario
+    # (baseline tanpa ROI & eye_mask); filter hanya menghapus baris, tidak memindah citra antar-bagian.
+    seeds = _seeds(args, cfg)
+    for seed in seeds:
+        clean[f"split_{seed}"] = stratified_group_split(clean, cfg, seed)
+    report["n_sebelum_filter_kualitas"] = len(clean)
     clean, dq = apply_quality_filter(clean, cfg, "MFED")
     dibuang.append(dq)
     report["n_setelah_filter_kualitas"] = len(clean)
     report["label_counts"] = clean["label"].value_counts().to_dict()
     report["species_counts"] = clean["species"].value_counts().to_dict()
 
-    for seed in _seeds(args, cfg):
-        clean["split"] = stratified_group_split(clean, cfg, seed)
+    for seed in seeds:
+        clean["split"] = clean[f"split_{seed}"]
         cols = ["path", "label", "species", "group", "split", "width", "height", "sha256"]
         cols += [c for c in ["eye_path", "box_score", "box_x0", "box_y0", "box_x1", "box_y1"] if c in clean]
         clean[cols].to_csv(sdir / f"mfed_split_seed{seed}.csv", index=False)

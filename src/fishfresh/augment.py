@@ -104,8 +104,10 @@ def augmentation_notes(cfg: dict, seed: int, n_train: int) -> dict:
     steps = []
     for i, l in enumerate(aug.layers if aug else [], 1):
         c = l.get_config()
-        params = {k: v for k, v in c.items() if k not in ("name", "trainable", "dtype", "seed",
+        params = {k: v for k, v in c.items() if k not in ("name", "trainable", "dtype", "seed", "autocast", "activity_regularizer",
                                                            "data_format", "interpolation")}
+        if type(l).__name__ == "RandomRotation":
+            params["derajat_maks"] = round(abs(c["factor"][1]) * 360, 2)
         steps.append({"urutan": i, "lapisan": type(l).__name__, "nama": l.name, "parameter": params,
                       "tujuan": _DESKRIPSI.get(_key(type(l).__name__), "")})
     return {
