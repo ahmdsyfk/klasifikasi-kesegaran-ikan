@@ -1,6 +1,12 @@
-# Skenario fokus mata: crop mata + masker lingkaran (permintaan pemilik, tambahan atas proposal 3.6).
-# Jalankan setelah `fishfresh roi` dan `fishfresh prepare` ulang:
+# Skenario fokus mata: crop mata + masker lingkaran + filter citra tak berguna
+# (permintaan pemilik, tambahan atas proposal 3.6).
+# Split = split baseline (seed sama, ditetapkan sebelum filter) dikurangi citra yang tersaring.
+#   uv run --extra roi fishfresh roi -c configs/eye_mask.yaml
+#   uv run fishfresh prepare -c configs/eye_mask.yaml
 #   uv run fishfresh all -c configs/eye_mask.yaml
 run_name: eye_mask
+paths:
+  splits_dir: data/splits_eye
 roi:
   mode: eye_mask
+  quality_filter: true

@@ -91,6 +91,20 @@ def evaluate_arch(arch: str, cfg: dict, seed: int, exclude_ffe_overlap: bool = F
     except FileNotFoundError as e:
         print(f"[lewati FFE] {e}")
 
+    # Subset bersama (citra yang lolos filter kualitas) -> pembanding identik antar-skenario
+    sub = cfg.get("eval", {}).get("subset_dir")
+    if sub:
+        sub = Path(sub) if Path(sub).is_absolute() else Path(__file__).resolve().parents[2] / sub
+        ps, pf = sub / f"mfed_split_seed{seed}.csv", sub / "ffe_manifest.csv"
+        if ps.exists() and Path(sub).resolve() != Path(cfg["paths"]["splits_dir"]).resolve():
+            keep = set(pd.read_csv(ps, usecols=["sha256"])["sha256"])
+            t = sets["mfed_test"]
+            sets["mfed_test_subset"] = t[t["sha256"].isin(keep)].reset_index(drop=True)
+            if "ffe" in sets and pf.exists():
+                keep_f = set(pd.read_csv(pf, usecols=["sha256"])["sha256"])
+                f = sets["ffe"]
+                sets["ffe_subset"] = f[f["sha256"].isin(keep_f)].reset_index(drop=True)
+
     for name, d in sets.items():
         prob = predict(model, d, cfg, seed)
         y = d["label"].map(cidx).to_numpy()
@@ -101,7 +115,7 @@ def evaluate_arch(arch: str, cfg: dict, seed: int, exclude_ffe_overlap: bool = F
         for i, c in enumerate(classes):
             pred[f"p_{c}"] = prob[:, i]
         pred.to_csv(out / f"pred_{name}.csv", index=False)
-        if name == "ffe":
+        if name.startswith("ffe"):
             m["per_species"] = {
                 sp: compute_metrics(y[g.index], yp[g.index], classes) | {"per_class": None}
                 for sp, g in d.groupby("species")

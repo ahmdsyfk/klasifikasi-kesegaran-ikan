@@ -36,18 +36,19 @@ dedup:
 roi:
   mode: none
   margin: 0.10                  # sisi crop = max(w,h) kotak mata x 1.10
-  max_box_area_frac: {MFED: 0.45, FFE: 0.98}   # kotak lebih besar = kepala, bukan mata
+  max_box_area_frac: {MFED: 0.38, FFE: 0.98}   # kotak mata MFED terbesar yg benar 33%; 43% = seluruh kepala
   aspect_range: [0.5, 2.0]
   grow_max_area_ratio: 4.0      # perluasan kotak pupil -> iris maks 4x luas
   grow_min_score_ratio: 0.5
-  quality_filter: true          # buang citra tak berguna (berlaku untuk baseline & eye_mask)
-  quality:                      # ambang ditetapkan dari distribusi + cek visual (lihat docs/)
-    min_det_score: {MFED: 0.0, FFE: 0.0}
-    min_eye_side_px: 0
-    min_sharpness: 0.0
-    min_brightness: 0.0
-    max_brightness: 255.0
-    max_clip_frac: 1.0
+  quality_filter: false         # baseline = prosedur proposal (cek berkas + dedup); filter kualitas mata
+                                # dipakai skenario eye_mask (configs/eye_mask.yaml)
+  quality:                      # ambang dari distribusi + cek visual grid QA (docs/log_eksperimen.md bag. 5)
+    min_det_score: {MFED: 0.0, FFE: 0.0}   # skor terendah MFED (0.04) pun tepat di mata
+    min_eye_side_px: 48         # pengaman; terkecil MFED 59 px
+    min_sharpness: {MFED: 30.0, FFE: 30.0} # variansi Laplacian area mata (224 px); < 30 = sangat kabur
+    min_brightness: 15.0        # tergelap MFED (22) masih jelas -> hanya buang yang nyaris hitam
+    max_brightness: 235.0
+    max_clip_frac: 0.5          # > 50% piksel area mata jenuh
 
 augment:                        # [proposal] Gambar 4: rotasi, gamma, noise, transformasi perspektif
   enabled: true
@@ -89,5 +90,10 @@ efficiency:                     # [proposal] 3.7.3
   batch_size: 1
   repeats: 3
   memory_sample_interval_ms: 5
+
+# Evaluasi tambahan pada subset bersama: citra uji MFED & FFE yang lolos filter kualitas
+# (split eye_mask). Dengan begitu baseline dan eye_mask dibandingkan pada citra uji yang identik.
+eval:
+  subset_dir: data/splits_eye
 
 models: [vgg16, resnet50, inceptionv3]

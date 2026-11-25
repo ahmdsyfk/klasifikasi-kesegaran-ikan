@@ -195,28 +195,41 @@ def quality_metrics(masked: Image.Image) -> dict:
 
 
 # ------------------------------------------------------------------ penyaringan
+def _thr(q: dict, key: str, dataset: str, default):
+    """Ambang boleh skalar atau dict per dataset {MFED: .., FFE: ..}."""
+    v = q.get(key, default)
+    return v.get(dataset, default) if isinstance(v, dict) else v
+
+
 def apply_quality_rules(row: dict, rcfg: dict) -> list[tuple[str, str]]:
     """Kembalikan daftar (kriteria, keterangan nilai vs ambang) yang dilanggar."""
     q = rcfg["quality"]
+    ds = row["dataset"]
     bad = []
-    if row.get("box_score") is None or not np.isfinite(row.get("box_score", np.nan)):
+    score = row.get("box_score")
+    if score is None or not np.isfinite(score):
         bad.append(("mata_tidak_terdeteksi", row.get("det_note") or "tanpa kotak valid"))
         return bad
-    ms = q["min_det_score"].get(row["dataset"], 0.0)
-    if row["box_score"] < ms:
-        bad.append(("mata_tidak_terdeteksi", f"skor deteksi {row['box_score']:.3f} < {ms}"))
-    if row["eye_side_px"] < q["min_eye_side_px"]:
-        bad.append(("mata_terlalu_kecil", f"sisi mata {row['eye_side_px']:.0f}px < {q['min_eye_side_px']}px"))
-    if row["sharpness_lapvar"] < q["min_sharpness"]:
-        bad.append(("buram", f"variansi Laplacian {row['sharpness_lapvar']:.1f} < {q['min_sharpness']}"))
-    if row["brightness_mean"] < q["min_brightness"]:
-        bad.append(("terlalu_gelap", f"kecerahan rata-rata {row['brightness_mean']:.1f} < {q['min_brightness']}"))
-    if row["brightness_mean"] > q["max_brightness"]:
-        bad.append(("terlalu_terang", f"kecerahan rata-rata {row['brightness_mean']:.1f} > {q['max_brightness']}"))
-    if row["clip_bright_frac"] > q["max_clip_frac"]:
-        bad.append(("over_exposure", f"piksel jenuh putih {row['clip_bright_frac']:.1%} > {q['max_clip_frac']:.0%}"))
-    if row["clip_dark_frac"] > q["max_clip_frac"]:
-        bad.append(("under_exposure", f"piksel jenuh hitam {row['clip_dark_frac']:.1%} > {q['max_clip_frac']:.0%}"))
+    t = _thr(q, "min_det_score", ds, 0.0)
+    if score < t:
+        bad.append(("mata_tidak_terdeteksi", f"skor deteksi {score:.3f} < {t}"))
+    t = _thr(q, "min_eye_side_px", ds, 0)
+    if row["eye_side_px"] < t:
+        bad.append(("mata_terlalu_kecil", f"sisi mata {row['eye_side_px']:.0f}px < {t}px"))
+    t = _thr(q, "min_sharpness", ds, 0.0)
+    if row["sharpness_lapvar"] < t:
+        bad.append(("buram", f"variansi Laplacian {row['sharpness_lapvar']:.1f} < {t}"))
+    t = _thr(q, "min_brightness", ds, 0.0)
+    if row["brightness_mean"] < t:
+        bad.append(("terlalu_gelap", f"kecerahan rata-rata {row['brightness_mean']:.1f} < {t}"))
+    t = _thr(q, "max_brightness", ds, 255.0)
+    if row["brightness_mean"] > t:
+        bad.append(("terlalu_terang", f"kecerahan rata-rata {row['brightness_mean']:.1f} > {t}"))
+    t = _thr(q, "max_clip_frac", ds, 1.0)
+    if row["clip_bright_frac"] > t:
+        bad.append(("over_exposure", f"piksel jenuh putih {row['clip_bright_frac']:.1%} > {t:.0%}"))
+    if row["clip_dark_frac"] > t:
+        bad.append(("under_exposure", f"piksel jenuh hitam {row['clip_dark_frac']:.1%} > {t:.0%}"))
     return bad
 
 

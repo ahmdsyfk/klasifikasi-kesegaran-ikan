@@ -111,13 +111,37 @@ Kriteria (dicatat per citra di `data_dibuang.csv`):
 | label_tidak_dikenali | nama folder | — |
 | konflik_label | SHA-256 | — |
 | duplikat_identik | SHA-256 | — |
-| mata_tidak_terdeteksi | tidak ada kotak valid / skor OWLv2 rendah | *ditetapkan dari distribusi* |
-| mata_terlalu_kecil | sisi kotak mata (px asli) | *ditetapkan* |
-| buram | variansi Laplacian di area mata | *ditetapkan* |
-| terlalu_gelap / terlalu_terang | rata-rata kecerahan area mata | *ditetapkan* |
-| over/under_exposure | fraksi piksel jenuh | *ditetapkan* |
+| mata_tidak_terdeteksi | tidak ada kotak valid / skor OWLv2 | skor ≥ 0 (tidak dibatasi; lihat kalibrasi) |
+| mata_terlalu_kecil | sisi kotak mata (px citra asli) | < 48 px |
+| buram | variansi Laplacian area mata (crop 224 px, tepi masker dikecualikan) | < 30 |
+| terlalu_gelap / terlalu_terang | rata-rata kecerahan (grayscale) area mata | < 15 / > 235 |
+| over/under_exposure | fraksi piksel jenuh (≥ 250 / ≤ 5) di area mata | > 50 % |
 
-*Ambang dan jumlah citra yang dibuang dicatat setelah deteksi mata selesai (lihat bagian 7).*
+### Kalibrasi ambang (2026-11-25, 2.800 citra MFED pertama yang sudah terdeteksi)
+
+Distribusi metrik (persentil 0 / 1 / 5 / 50 / 99 / 100):
+
+| Metrik | p0 | p1 | p5 | p50 | p99 | p100 |
+|---|---|---|---|---|---|---|
+| skor deteksi OWLv2 | 0,040 | 0,096 | 0,166 | 0,355 | 0,612 | 0,761 |
+| sisi mata (px) | 59 | 115 | 131 | 257 | 458 | 678 |
+| ketajaman (var. Laplacian) | 19 | 47 | 96 | 931 | 11.694 | 17.318 |
+| kecerahan rata-rata | 21,5 | 33,0 | 40,3 | 75,8 | 134,6 | 156,1 |
+| fraksi piksel jenuh putih | 0 | 0 | 0 | 0,007 | 0,096 | 0,186 |
+
+Pemeriksaan visual grid QA (kotak terpilih + hasil crop):
+- **Skor deteksi terendah** (16 citra, skor 0,04–0,08): semuanya tepat di mata → skor tidak dipakai
+  sebagai filter untuk MFED.
+- **Kotak terbesar**: 1 citra kotaknya mencakup seluruh kepala (43 % luas citra, sisi 678 px);
+  kotak mata benar terbesar = 33 % (citra 500 px yang diambil dekat). Batas luas kotak MFED
+  diturunkan 45 % → 38 %; citra tersebut **tidak dibuang** melainkan otomatis beralih ke kandidat
+  berikutnya yang tepat di mata (skor 0,38, sisi 216 px).
+- **Paling buram** (var. Laplacian 19–39): kabur karena gerak/fokus; 2 di antaranya kotak hanya
+  menangkap pupil. Ambang < 30 membuang ±0,3 % citra.
+- **Paling gelap** (kecerahan 22–29): mata masih jelas terlihat → ambang gelap dibuat sangat rendah
+  (< 15) agar hanya citra nyaris hitam yang dibuang.
+
+*Jumlah final citra yang dibuang per kriteria dicatat setelah deteksi seluruh MFED dan FFE selesai.*
 
 ## 6. Augmentasi (proposal 2.7, Gambar 4)
 
@@ -145,12 +169,38 @@ Estimasi kecepatan di M1 (diukur 2026-11-25, batch 32, saat proses lain berjalan
 | ResNet50 | 1,02 | 1,90 | 2,5 / 4 |
 | InceptionV3 | 0,70 | 1,02 | 1,6 / 2,2 |
 
-### Run
+### Desain data per skenario
 
-| Run | Mulai | Data | Status |
+- **Keluarga baseline** (baseline, K1–K6): prosedur proposal — cek berkas + deduplikasi, tanpa
+  filter kualitas mata. Split: `data/splits/`.
+- **Keluarga fokus mata** (eye_mask, K1 eye_mask): crop mata + masker + filter kualitas.
+  Split: `data/splits_eye/` = split baseline (seed sama, ditetapkan sebelum filter) dikurangi citra
+  yang tersaring → tidak ada citra yang berpindah bagian.
+- **Pembanding adil**: setiap model juga dievaluasi pada **subset bersama** (citra uji MFED & FFE
+  yang lolos filter) → `metrics_mfed_test_subset.json`, `metrics_ffe_subset.json`.
+- Benchmark efisiensi selalu dijalankan saat tidak ada pelatihan lain.
+
+### Antrean otomatis (`scripts/antrian_pelatihan.sh`, status: `outputs/antrian_status.log`)
+
+| # | Skenario | Isi | Estimasi durasi (M1 CPU) |
 |---|---|---|---|
-| `baseline` (citra utuh, sesuai proposal) | 2026-11-25 ±22:25 | split seed 42, 3.360 latih | berjalan: InceptionV3 → ResNet50 → VGG16 |
-| `eye_mask` (fokus mata) | setelah ROI MFED selesai | split yang sama, setelah filter | menunggu |
+| 1 | baseline (S1) | InceptionV3 → ResNet50 → VGG16, seed 42 — **mulai 2026-11-25 22:25** | ±10 jam |
+| 2 | ROI + prepare | crop mata, filter, split seed 42/123/2026 | ±0,5 jam |
+| 3 | baseline S2–S4 | evaluasi MFED+FFE, benchmark CPU 4 thread, Grad-CAM, ringkasan | ±1 jam |
+| 4 | eye_mask | 3 arsitektur + evaluasi/benchmark/Grad-CAM | ±10 jam |
+| 5 | K1 multi-seed | seed 123 & 2026 untuk baseline dan eye_mask (12 model) | ±40 jam |
+| 6 | K2 feature extraction | fase 1 saja | ±4 jam |
+| 7 | K4 tanpa augmentasi | ablasi augmentasi | ±8 jam |
+| 8 | K3 InceptionV3 299×299 | resolusi asli Inception | ±3 jam |
+| 9 | K6 fine-tuning 60 % | sensitivitas lapisan yang dibuka | ±11 jam |
+| 10 | K5 class weight + label smoothing | | ±10 jam |
+| 11 | K7 skala thread 1/2/8 | benchmark saja | ±1 jam |
+| — | K8 mixed precision | **dilewati**: hanya bermakna di GPU CUDA; di CPU dimatikan otomatis (hasil = baseline) | — |
+| — | K9 FFE tanpa tumpang-tindih, K10 per spesies | analisis dari `pred_ffe.csv` + `per_species` (tanpa latih ulang) | — |
+| — | K11–K13 | saran penelitian lanjutan (TFLite diekspor oleh modul aplikasi) | — |
+
+Perkiraan total ±100 jam (±4–5 hari). Urutan mengikuti prioritas di `docs/skenario_eksperimen.md`
+(★★★ dulu). Waktu aktual dicatat per tahap di `outputs/antrian_status.log`.
 
 ## 8. Hasil
 
