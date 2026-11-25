@@ -208,8 +208,18 @@ Perkiraan total ±100 jam (±4–5 hari). Urutan mengikuti prioritas di `docs/sk
 |---|---|---|
 | 2026-11-25 22:50 | OWLv2 memilih kotak seluruh kepala pada 1 citra MFED (43 % luas) | batas luas kotak MFED 45 % → 38 %; citra otomatis beralih ke kotak mata yang benar |
 | 2026-11-25 22:50 | 2 citra buram: kotak hanya menangkap pupil | tersaring oleh kriteria `buram` (var. Laplacian < 30) |
+| 2026-11-25 23:25 | Deteksi mata MFED selesai: 4.800/4.800 citra punya kandidat kotak (1 j 20 m di MPS). Rantai deteksi FFE macet karena skrip penunggu mendeteksi dirinya sendiri sebagai proses MFED | rantai dihentikan, deteksi FFE dijalankan langsung |
 | 2026-11-25 23:05 | Pelatihan & ROI berjalan bersamaan; menulis ulang split saat ResNet50/VGG16 baseline belum mulai berisiko data latih tidak konsisten | split eye_mask dipisah ke `data/splits_eye/`; `prepare` baseline dijalankan setelah pelatihan baseline selesai |
 
 ## 8. Hasil
 
 *Diisi otomatis dari `outputs/<run>/ringkasan.csv` setelah evaluasi.*
+
+### 8.1 Pelatihan baseline (seed 42)
+
+| Arsitektur | Epoch fase 1 | Epoch fase 2 (ES) | Epoch terbaik fase 2 | val_loss terbaik | val_acc terbaik | Waktu latih | Rata-rata/epoch | Param total / dilatih akhir | Ukuran `.keras` |
+|---|---|---|---|---|---|---|---|---|---|
+| InceptionV3 | 30 (tanpa ES, val_loss 0,755, val_acc 63,6 %) | 17 (berhenti dini) | 10 | 0,500 | 78,8 % | 89,4 menit | 114 s | 22,33 jt / 13,73 jt (26 lapisan berbobot dibuka) | 86,2 MB |
+
+Catatan: fase 1 (backbone beku) masih turun pelan sampai epoch 30; fine-tuning menaikkan val_acc ±15 poin.
+Akurasi latih fase 2 (85–90 %) > validasi (±78 %) → indikasi overfitting ringan yang dihentikan early stopping.
