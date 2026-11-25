@@ -202,6 +202,14 @@ Estimasi kecepatan di M1 (diukur 2026-11-25, batch 32, saat proses lain berjalan
 Perkiraan total ±100 jam (±4–5 hari). Urutan mengikuti prioritas di `docs/skenario_eksperimen.md`
 (★★★ dulu). Waktu aktual dicatat per tahap di `outputs/antrian_status.log`.
 
+## 7b. Temuan & Intervensi selama eksperimen
+
+| Waktu | Temuan | Tindakan |
+|---|---|---|
+| 2026-11-25 22:50 | OWLv2 memilih kotak seluruh kepala pada 1 citra MFED (43 % luas) | batas luas kotak MFED 45 % → 38 %; citra otomatis beralih ke kotak mata yang benar |
+| 2026-11-25 22:50 | 2 citra buram: kotak hanya menangkap pupil | tersaring oleh kriteria `buram` (var. Laplacian < 30) |
+| 2026-11-25 23:05 | Pelatihan & ROI berjalan bersamaan; menulis ulang split saat ResNet50/VGG16 baseline belum mulai berisiko data latih tidak konsisten | split eye_mask dipisah ke `data/splits_eye/`; `prepare` baseline dijalankan setelah pelatihan baseline selesai |
+
 ## 8. Hasil
 
 *Diisi otomatis dari `outputs/<run>/ringkasan.csv` setelah evaluasi.*
