@@ -34,7 +34,7 @@ import numpy as np
 
 DEFAULT_OUT = Path("mobile/build/models")
 BUNDLE_OUT = Path("mobile/androidApp/src/main/assets/models")
-DEMO_OUT = Path("mobile/androidApp/src/debug/assets/models")
+DEMO_OUT = Path("mobile/androidApp/src/main/assets/models")
 ARCH_NAMES = {"vgg16": "VGG16", "resnet50": "ResNet50", "inceptionv3": "InceptionV3"}
 ARCH_ORDER = {"vgg16": 0, "resnet50": 1, "inceptionv3": 2}
 SCENARIO_ORDER = ["eye_mask", "baseline", "k2_feature_extraction", "k3_inception299",
@@ -255,8 +255,8 @@ def export_demo(cfg: dict, out_dir: Path) -> None:
     out = layers.Dense(len(cfg["classes"]), activation="softmax")(x)
     tfl = _convert(keras.Model(inp, out), "none")
     meta = {
-        "id": "demo", "name": "Demo", "arch": "tiny-cnn", "scenario": "demo",
-        "scenario_name": "Demo (bobot acak)", "scenario_desc": "Hanya untuk uji alur aplikasi.",
+        "id": "demo", "name": "CNN kecil", "arch": "tiny-cnn", "scenario": "demo",
+        "scenario_name": "Model demo", "scenario_desc": "Hanya untuk uji alur aplikasi.",
         "seed": 0, "input_variant": "eye_crop", "input_size": int(s), "input_range": "0-255",
         "input_color": "RGB", "classes": list(cfg["classes"]),
         "class_names_id": list(cfg["class_names_id"]), "quantization": "none",

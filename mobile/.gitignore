@@ -1,0 +1,11 @@
+.gradle/
+build/
+local.properties
+.idea/
+.kotlin/
+*.iml
+captures/
+# Model terlatih berukuran besar: hasilkan ulang dengan `python -m fishfresh.export_mobile`
+# model bawaan APK: hanya demo kecil yang di-commit; model besar lewat registry Supabase
+androidApp/src/main/assets/models/*.tflite
+!androidApp/src/main/assets/models/demo.tflite

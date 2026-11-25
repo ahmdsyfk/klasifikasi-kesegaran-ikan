@@ -1,0 +1,6 @@
+# Salin menjadi local.properties (TIDAK di-commit).
+sdk.dir=/Users/<anda>/Library/Android/sdk
+# Opsional — kosongkan bila tidak memakai Supabase (ekspor ZIP tetap jalan).
+# Kunci anon/publishable memang publik-by-design; keamanan dijaga RLS (supabase/schema.sql).
+SUPABASE_URL=https://xxxx.supabase.co
+SUPABASE_PUBLISHABLE_KEY=

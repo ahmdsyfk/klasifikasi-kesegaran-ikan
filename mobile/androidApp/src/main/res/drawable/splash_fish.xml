@@ -1,0 +1,15 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108">
+    <path android:fillColor="#0284C7" android:pathData="M18,54 a36,36 0 1,0 72,0 a36,36 0 1,0 -72,0 Z" />
+    <path android:fillColor="#FFFFFF" android:pathData="M27,54 a27,27 0 1,0 54,0 a27,27 0 1,0 -54,0 Z" />
+    <path android:fillColor="#0D9488" android:pathData="M35,54 a19,19 0 1,0 38,0 a19,19 0 1,0 -38,0 Z" />
+    <group android:name="pupil" android:pivotX="54" android:pivotY="54">
+        <path android:fillColor="#0F172A" android:pathData="M43.5,54 a10.5,10.5 0 1,0 21.0,0 a10.5,10.5 0 1,0 -21.0,0 Z" />
+    </group>
+    <group android:name="glint" android:pivotX="61" android:pivotY="46.5" android:scaleX="0" android:scaleY="0">
+        <path android:fillColor="#FFFFFF" android:pathData="M56.4,46.5 a4.6,4.6 0 1,0 9.2,0 a4.6,4.6 0 1,0 -9.2,0 Z" />
+        <path android:fillColor="#FFFFFF" android:fillAlpha="0.8" android:pathData="M44.9,61.5 a2.1,2.1 0 1,0 4.2,0 a2.1,2.1 0 1,0 -4.2,0 Z" />
+    </group>
+    <group android:name="sparkle" android:pivotX="76" android:pivotY="32" android:scaleX="0" android:scaleY="0">
+        <path android:fillColor="#E0F2FE" android:pathData="M76,25 Q77,31 83,32 Q77,33 76,39 Q75,33 69,32 Q75,31 76,25 Z" />
+    </group>
+</vector>

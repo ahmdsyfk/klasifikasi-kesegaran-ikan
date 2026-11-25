@@ -1,0 +1,15 @@
+<resources>
+    <!-- Splash: logo ikan segar beranimasi (Android 12+), statis di Android 8-11 lewat core-splashscreen. -->
+    <style name="Theme.IkanSegar.Splash" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@android:color/white</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/splash_fish_animated</item>
+        <item name="windowSplashScreenAnimationDuration">900</item>
+        <item name="postSplashScreenTheme">@style/Theme.IkanSegar</item>
+    </style>
+
+    <style name="Theme.IkanSegar" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@android:color/white</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar">true</item>
+    </style>
+</resources>

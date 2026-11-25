@@ -1,0 +1,30 @@
+{
+  "id": "demo",
+  "name": "CNN kecil",
+  "arch": "tiny-cnn",
+  "scenario": "demo",
+  "scenario_name": "Model demo",
+  "scenario_desc": "Hanya untuk uji alur aplikasi.",
+  "seed": 0,
+  "input_variant": "eye_crop",
+  "input_size": 224,
+  "input_range": "0-255",
+  "input_color": "RGB",
+  "classes": [
+    "highly_fresh",
+    "fresh",
+    "not_fresh"
+  ],
+  "class_names_id": [
+    "Sangat Segar",
+    "Segar",
+    "Tidak Segar"
+  ],
+  "quantization": "none",
+  "version": "2026-11-25T15:22:11+00:00",
+  "trained_on": "tidak dilatih",
+  "metrics": {},
+  "demo": true,
+  "file_mb": 0.03,
+  "file_sha256": "b81a920419f633e85c154ce8c69199c41d9f7d6bb559a1fb809a6b23fc8e5d7e"
+}
