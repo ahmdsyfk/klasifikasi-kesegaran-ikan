@@ -1,0 +1,4 @@
+# K8 - Mixed precision (FP16) untuk mempercepat pelatihan di RTX 4060
+run_name: k8_mixed_precision
+train:
+  mixed_precision: true

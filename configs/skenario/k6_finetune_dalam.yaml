@@ -1,0 +1,4 @@
+# K6 - Fine-tuning lebih dalam (60% lapisan atas backbone dibuka)
+run_name: k6_finetune_dalam
+train:
+  unfreeze_ratio: 0.6

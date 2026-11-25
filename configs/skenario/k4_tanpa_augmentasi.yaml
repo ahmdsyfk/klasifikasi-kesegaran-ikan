@@ -1,0 +1,4 @@
+# K4 - Ablasi augmentasi: tanpa augmentasi data
+run_name: k4_tanpa_augmentasi
+augment:
+  enabled: false

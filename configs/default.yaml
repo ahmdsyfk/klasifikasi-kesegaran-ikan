@@ -1,0 +1,93 @@
+# Konfigurasi utama eksperimen (sesuai proposal Bab III).
+# Nilai bertanda [proposal] diambil langsung dari proposal; [asumsi] belum ditetapkan di proposal
+# dan boleh diubah (lihat docs/skenario_eksperimen.md).
+
+seed: 42                        # [asumsi] skenario multi-seed memakai 42, 123, 2026
+run_name: baseline              # nama subfolder di outputs/
+
+paths:
+  mfed_dir: data/raw/MFED       # hasil ekstrak "Multistage Fish Eyes Dataset.zip"
+  ffe_dir: data/raw/FFE         # folder "<Spesies> - <Kelas>"
+  splits_dir: data/splits       # manifest & pembagian data (dibuat oleh `fishfresh prepare`)
+  outputs_dir: outputs
+  roi_dir: data/processed/eye_roi   # hasil deteksi mata, crop bermasker, metrik kualitas
+
+# Urutan kelas = indeks label model.  [proposal] 3 kelas
+classes: [highly_fresh, fresh, not_fresh]
+class_names_id: [Sangat Segar, Segar, Tidak Segar]
+
+image_size: 224                 # [proposal] 224 x 224 untuk ketiga arsitektur
+
+split:                          # [proposal] 70:15:15 terstratifikasi
+  train: 0.70
+  val: 0.15
+  test: 0.15
+  # Kelompokkan citra hampir-duplikat agar tidak tersebar ke train/val/test (anti kebocoran).
+  group_near_duplicates: true
+
+dedup:
+  phash_hamming_threshold: 4    # [asumsi] jarak Hamming pHash 64-bit <= 4 dianggap hampir duplikat
+  drop_exact_duplicates: true   # duplikat identik (SHA-256 sama) disimpan satu saja
+  drop_label_conflicts: true    # citra identik dengan label berbeda dibuang semua
+  check_cross_dataset: true     # cek tumpang-tindih MFED vs FFE (FFE berisi nila & mujair juga)
+
+# Isolasi area mata (permintaan pemilik, tambahan atas proposal 3.6).
+# mode: none = citra utuh (baseline sesuai proposal) | eye_mask = crop mata + masker lingkaran
+roi:
+  mode: none
+  margin: 0.10                  # sisi crop = max(w,h) kotak mata x 1.10
+  max_box_area_frac: {MFED: 0.45, FFE: 0.98}   # kotak lebih besar = kepala, bukan mata
+  aspect_range: [0.5, 2.0]
+  grow_max_area_ratio: 4.0      # perluasan kotak pupil -> iris maks 4x luas
+  grow_min_score_ratio: 0.5
+  quality_filter: true          # buang citra tak berguna (berlaku untuk baseline & eye_mask)
+  quality:                      # ambang ditetapkan dari distribusi + cek visual (lihat docs/)
+    min_det_score: {MFED: 0.0, FFE: 0.0}
+    min_eye_side_px: 0
+    min_sharpness: 0.0
+    min_brightness: 0.0
+    max_brightness: 255.0
+    max_clip_frac: 1.0
+
+augment:                        # [proposal] Gambar 4: rotasi, gamma, noise, transformasi perspektif
+  enabled: true
+  rotation_deg: 15
+  gamma_range: [0.8, 1.2]
+  noise_std: 0.03               # relatif terhadap rentang 0-1
+  perspective: 0.1
+  horizontal_flip: true         # [asumsi] tambahan umum (Husen, 2024)
+  brightness: 0.1               # [asumsi]
+
+model:
+  head_dense_units: 256         # [asumsi]
+  dropout: 0.5                  # [asumsi]
+  weights: imagenet             # [proposal]
+
+train:
+  batch_size: 32                # [asumsi] aman untuk VRAM 8 GB RTX 4060
+  optimizer: adam
+  # Fase 1: backbone dibekukan (feature extraction)
+  phase1_epochs: 30
+  phase1_lr: 1.0e-3
+  # Fase 2: fine-tuning sebagian lapisan atas backbone
+  fine_tune: true
+  phase2_epochs: 30
+  phase2_lr: 1.0e-5
+  unfreeze_ratio: 0.3           # 30% lapisan teratas backbone dibuka
+  early_stopping_patience: 7
+  reduce_lr_patience: 3
+  monitor: val_loss
+  class_weight: false           # aktifkan bila distribusi kelas timpang
+  label_smoothing: 0.0
+  mixed_precision: auto         # auto = aktif hanya di GPU CUDA (RTX 4060 via WSL2), mati di CPU/Mac
+  deterministic: false          # true = hasil identik antar-run, tapi lebih lambat
+
+efficiency:                     # [proposal] 3.7.3
+  threads: 4
+  warmup: 10
+  n_images: 200
+  batch_size: 1
+  repeats: 3
+  memory_sample_interval_ms: 5
+
+models: [vgg16, resnet50, inceptionv3]

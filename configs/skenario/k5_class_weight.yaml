@@ -1,0 +1,5 @@
+# K5 - Penanganan ketidakseimbangan kelas: class weight + label smoothing
+run_name: k5_class_weight
+train:
+  class_weight: true
+  label_smoothing: 0.1

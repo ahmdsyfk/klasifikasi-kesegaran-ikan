@@ -1,0 +1,6 @@
+# Skenario fokus mata: crop mata + masker lingkaran (permintaan pemilik, tambahan atas proposal 3.6).
+# Jalankan setelah `fishfresh roi` dan `fishfresh prepare` ulang:
+#   uv run fishfresh all -c configs/eye_mask.yaml
+run_name: eye_mask
+roi:
+  mode: eye_mask

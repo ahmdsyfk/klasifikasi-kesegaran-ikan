@@ -1,0 +1,4 @@
+# K3 - InceptionV3 pada resolusi aslinya 299x299 (dibandingkan dengan 224 di baseline)
+# Jalankan: uv run fishfresh all -c configs/skenario/k3_inception299.yaml --archs inceptionv3
+run_name: k3_inception299
+image_size: 299

@@ -1,0 +1,4 @@
+# K7 - Skala thread inferensi CPU (1, 2, 4, 8) pada model baseline yang sudah dilatih
+# Hasil thread != 4 disimpan sebagai efficiency_t<n>.json (tidak menimpa hasil utama).
+#   for t in 1 2 8; do uv run fishfresh benchmark --set efficiency.threads=$t; done
+run_name: baseline

@@ -1,0 +1,4 @@
+# K2 - Feature extraction saja (backbone beku, tanpa fine-tuning)
+run_name: k2_feature_extraction
+train:
+  fine_tune: false
