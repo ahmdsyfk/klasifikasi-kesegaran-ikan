@@ -49,6 +49,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import id.fishfresh.domain.FreshnessClass
 import id.fishfresh.ui.components.Eyebrow
@@ -197,12 +198,12 @@ private fun EyeIllustration(c: FreshnessClass, modifier: Modifier = Modifier) = 
 private data class Step(val icon: ImageVector, val title: String, val desc: String)
 
 private val steps = listOf(
-    Step(Icons.Outlined.Dataset, "Kumpulkan data", "MFED untuk latih dan uji, FFE untuk uji lintas dataset."),
-    Step(Icons.Outlined.Crop, "Praproses", "Citra utuh atau crop mata, diubah ke 224 × 224 piksel."),
-    Step(Icons.Outlined.Memory, "Latih 3 CNN", "VGG16, ResNet50, InceptionV3 dengan transfer learning."),
-    Step(Icons.Outlined.Analytics, "Uji dan bandingkan", "Kinerja di MFED, ketahanan di FFE, dan efisiensi."),
-    Step(Icons.Outlined.PhoneAndroid, "Jalankan di ponsel", "Model terbaik dipakai aplikasi ini, tanpa internet."),
-    Step(Icons.Outlined.Storefront, "Validasi lapangan", "Diuji pada foto ikan dari pasar (data primer)."),
+    Step(Icons.Outlined.Dataset, "Kumpulkan data", "MFED untuk latih, FFE untuk uji silang"),
+    Step(Icons.Outlined.Crop, "Praproses", "Citra utuh atau crop mata, 224 × 224 px"),
+    Step(Icons.Outlined.Memory, "Latih 3 CNN", "Transfer learning dari bobot ImageNet"),
+    Step(Icons.Outlined.Analytics, "Uji dan bandingkan", "Kinerja, ketahanan, dan efisiensi"),
+    Step(Icons.Outlined.PhoneAndroid, "Jalankan di ponsel", "Model terbaik berjalan tanpa internet"),
+    Step(Icons.Outlined.Storefront, "Validasi lapangan", "Diuji pada foto ikan dari pasar"),
 )
 
 @Composable
@@ -220,7 +221,8 @@ private fun Pipeline() = Column {
                     PlainIcon(s.icon, Palette.Accent, 18.dp)
                     Text(s.title, style = MaterialTheme.typography.titleSmall)
                 }
-                Text(s.desc, style = MaterialTheme.typography.bodySmall, color = Palette.TextMuted)
+                Text(s.desc, style = MaterialTheme.typography.bodySmall, color = Palette.TextMuted,
+                    maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
         }
     }
@@ -230,38 +232,73 @@ private fun Pipeline() = Column {
 
 @Composable
 private fun DataBlock() {
-    Row(horizontalArrangement = Arrangement.spacedBy(Space.s)) {
-        Stat("4.800", "citra MFED", "2 spesies · 1.600 per kelas")
-        Stat("±4.392", "citra FFE", "8 spesies · hanya untuk uji")
-    }
-    Column(verticalArrangement = Arrangement.spacedBy(Space.xs)) {
-        Text("Pembagian MFED (terstratifikasi)", style = MaterialTheme.typography.titleSmall)
-        Row(Modifier.fillMaxWidth().height(28.dp).clip(RoundedCornerShape(8.dp))) {
-            SplitPart(0.70f, "Latih 70%", Palette.Primary)
-            SplitPart(0.15f, "Val 15%", Palette.Accent)
-            SplitPart(0.15f, "Uji 15%", Palette.PrimaryPressed)
+    DatasetCard(
+        role = "Latih dan uji", name = "MFED v2", full = "Multistage Fish Eyes Dataset",
+        value = "4.800", tags = listOf("2 spesies", "3 kelas", "1.600 per kelas"), accent = Palette.Primary,
+    )
+    DatasetCard(
+        role = "Uji lintas dataset", name = "FFE v1", full = "Freshness of the Fish Eyes",
+        value = "±4.392", tags = listOf("8 spesies", "tanpa latih ulang"), accent = Palette.Accent,
+    )
+    Column(verticalArrangement = Arrangement.spacedBy(Space.s)) {
+        Text("Pembagian MFED, terstratifikasi per kelas", style = MaterialTheme.typography.titleSmall)
+        Row(Modifier.fillMaxWidth().height(12.dp).clip(RoundedCornerShape(6.dp))) {
+            Box(Modifier.weight(0.70f).fillMaxHeight().background(Palette.Primary))
+            Box(Modifier.weight(0.15f).fillMaxHeight().background(Palette.Accent))
+            Box(Modifier.weight(0.15f).fillMaxHeight().background(Palette.Warning))
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(Space.l)) {
+            Legend(Palette.Primary, "Latih", "70%")
+            Legend(Palette.Accent, "Validasi", "15%")
+            Legend(Palette.Warning, "Uji", "15%")
         }
     }
-    Text(
-        "Citra identik dibuang dan citra hampir kembar dikelompokkan, agar tidak ada yang bocor dari data latih ke data uji.",
-        style = MaterialTheme.typography.bodySmall, color = Palette.TextMuted,
-    )
+    Row(horizontalArrangement = Arrangement.spacedBy(Space.s)) {
+        PlainIcon(Icons.Outlined.Lock, Palette.TextMuted, 16.dp)
+        Text(
+            "Citra kembar dibuang dan citra mirip dikelompokkan, jadi tidak ada yang bocor dari data latih ke data uji.",
+            Modifier.weight(1f), style = MaterialTheme.typography.bodySmall, color = Palette.TextMuted,
+        )
+    }
 }
 
+/** Kartu dataset: garis warna di kiri (peran), nama dan ciri di tengah, jumlah citra di kanan. */
 @Composable
-private fun RowScope.Stat(value: String, label: String, note: String) = Column(
-    Modifier.weight(1f).clip(MaterialTheme.shapes.medium).background(Color.White)
-        .border(1.dp, Palette.Divider, MaterialTheme.shapes.medium).padding(Space.m),
+private fun DatasetCard(role: String, name: String, full: String, value: String, tags: List<String>, accent: Color) = Row(
+    Modifier.fillMaxWidth().height(IntrinsicSize.Min).clip(MaterialTheme.shapes.medium).background(Color.White)
+        .border(1.dp, Palette.Divider, MaterialTheme.shapes.medium),
 ) {
-    Text(value, style = MaterialTheme.typography.headlineMedium, color = Palette.Primary)
-    Text(label, style = MaterialTheme.typography.titleSmall)
-    Text(note, style = MaterialTheme.typography.bodySmall, color = Palette.TextMuted)
+    Box(Modifier.width(6.dp).fillMaxHeight().background(accent))
+    Row(Modifier.weight(1f).padding(Space.m), verticalAlignment = Alignment.CenterVertically) {
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(role.uppercase(), style = MaterialTheme.typography.labelSmall, color = accent, fontWeight = FontWeight.SemiBold)
+            Text(name, style = MaterialTheme.typography.titleMedium)
+            Text(full, style = MaterialTheme.typography.bodySmall, color = Palette.TextMuted, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Row(Modifier.padding(top = Space.xs), horizontalArrangement = Arrangement.spacedBy(Space.xs)) {
+                tags.forEach { t ->
+                    Text(
+                        t, Modifier.clip(RoundedCornerShape(6.dp)).background(Palette.Panel)
+                            .border(1.dp, Palette.Divider, RoundedCornerShape(6.dp)).padding(horizontal = 6.dp, vertical = 2.dp),
+                        style = MaterialTheme.typography.labelSmall, color = Palette.Text, maxLines = 1,
+                    )
+                }
+            }
+        }
+        Column(horizontalAlignment = Alignment.End) {
+            Text(value, style = MaterialTheme.typography.headlineMedium, color = accent)
+            Text("citra", style = MaterialTheme.typography.labelSmall, color = Palette.TextMuted)
+        }
+    }
 }
 
 @Composable
-private fun RowScope.SplitPart(w: Float, label: String, c: Color) = Box(
-    Modifier.weight(w).fillMaxHeight().background(c), contentAlignment = Alignment.Center,
-) { Text(label, style = MaterialTheme.typography.labelSmall, color = Color.White, maxLines = 1) }
+private fun Legend(c: Color, label: String, pct: String) = Row(
+    verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp),
+) {
+    Box(Modifier.size(10.dp).clip(RoundedCornerShape(3.dp)).background(c))
+    Text(label, style = MaterialTheme.typography.bodySmall)
+    Text(pct, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
+}
 
 /* ---------- Arsitektur ---------- */
 
