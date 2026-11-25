@@ -35,8 +35,22 @@ android {
         noCompress += "tflite"
     }
 
+    // Penandatanganan release: path & kata sandi dari environment (kata sandi disimpan di Keychain,
+    // tidak pernah di repo). Tanpa variabel ini, build release tidak ditandatangani.
+    val ksPath = System.getenv("IKANSEGAR_KEYSTORE")
+    val ksPass = System.getenv("IKANSEGAR_KEYSTORE_PASSWORD")
+    signingConfigs {
+        if (ksPath != null && ksPass != null) create("release") {
+            storeFile = file(ksPath)
+            storePassword = ksPass
+            keyAlias = "ikansegar"
+            keyPassword = ksPass
+        }
+    }
+
     buildTypes {
         release {
+            signingConfigs.findByName("release")?.let { signingConfig = it }
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
