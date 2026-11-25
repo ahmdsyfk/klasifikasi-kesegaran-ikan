@@ -24,6 +24,10 @@ FFE = ("xzyx7pbr3w", 1)
 UA = {"User-Agent": "fishfresh-research-downloader"}
 
 
+class ChecksumError(OSError):
+    pass
+
+
 def _retry(fn, tries: int = 6):
     for i in range(tries):
         try:
@@ -64,7 +68,7 @@ def _download_once(url: str, dest: Path, sha256: str | None = None, show: bool =
         bar.close()
     if sha256 and _sha256(tmp) != sha256:
         tmp.unlink()
-        raise RuntimeError(f"Checksum tidak cocok: {dest}")
+        raise ChecksumError(f"Checksum tidak cocok: {dest}")
     tmp.rename(dest)
 
 
@@ -101,8 +105,20 @@ def download_ffe(out_dir: Path, workers: int = 4) -> None:
             cd = f["content_details"]
             jobs.append((cd["download_url"], out_dir / name / f["filename"], cd.get("sha256_hash")))
     print(f"FFE: {len(folders)} folder, {len(jobs)} berkas")
+    failed = []
+
+    def job(j):
+        try:
+            _download(*j, show=False)
+        except Exception as e:  # noqa: BLE001 - catat lalu lanjut ke berkas lain
+            failed.append((str(j[1]), f"{type(e).__name__}: {e}"))
+
     with ThreadPoolExecutor(workers) as ex:
-        list(tqdm(ex.map(lambda j: _download(*j, show=False), jobs), total=len(jobs), desc="FFE"))
+        list(tqdm(ex.map(job, jobs), total=len(jobs), desc="FFE"))
+    if failed:
+        log = out_dir / "_gagal_unduh.txt"
+        log.write_text("\n".join(f"{p}\t{e}" for p, e in failed))
+        print(f"[peringatan] {len(failed)} berkas gagal diunduh -> {log} (jalankan ulang untuk mencoba lagi)")
 
 
 def download_all(cfg: dict, which: str = "all") -> None:
