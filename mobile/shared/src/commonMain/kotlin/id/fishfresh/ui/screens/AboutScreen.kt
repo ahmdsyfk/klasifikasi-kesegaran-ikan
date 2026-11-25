@@ -1,6 +1,14 @@
 package id.fishfresh.ui.screens
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
+import id.fishfresh.resources.Res
+import id.fishfresh.resources.logo_darmajaya
+import id.fishfresh.ui.components.Hairline
+import org.jetbrains.compose.resources.painterResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -27,7 +35,6 @@ import androidx.compose.material.icons.outlined.Dataset
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Memory
 import androidx.compose.material.icons.outlined.PhoneAndroid
-import androidx.compose.material.icons.outlined.School
 import androidx.compose.material.icons.outlined.Speed
 import androidx.compose.material.icons.outlined.Storefront
 import androidx.compose.material.icons.outlined.SyncAlt
@@ -45,13 +52,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import id.fishfresh.domain.FreshnessClass
 import id.fishfresh.ui.components.Eyebrow
-import id.fishfresh.ui.components.FishLogo
 import id.fishfresh.ui.components.Panel
 import id.fishfresh.ui.components.PlainIcon
 import id.fishfresh.ui.components.ScreenColumn
 import id.fishfresh.ui.components.ScreenHeader
 import id.fishfresh.ui.components.Section
-import id.fishfresh.ui.components.icon
 import id.fishfresh.ui.theme.Palette
 import id.fishfresh.ui.theme.Space
 import id.fishfresh.ui.theme.color
@@ -67,6 +72,7 @@ fun AboutScreen() = ScreenColumn {
     ScreenHeader("Tentang penelitian", eyebrow = "Penelitian skripsi · 2026")
     StudentCard()
     QuestionCard()
+    Section(title = "Ciri mata ikan per kelas") { EyeTraits() }
     Section(title = "Alur eksperimen") { Pipeline() }
     Section(title = "Data") { DataBlock() }
     Section(title = "Tiga arsitektur CNN") { Architectures() }
@@ -80,58 +86,112 @@ fun AboutScreen() = ScreenColumn {
 
 @Composable
 private fun StudentCard() = Panel(color = Color.White) {
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Space.l)) {
-        Box(Modifier.size(56.dp).clip(CircleShape).background(Palette.Primary), contentAlignment = Alignment.Center) {
-            Text("AS", style = MaterialTheme.typography.titleLarge, color = Color.White)
-        }
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Space.m)) {
+        Image(painterResource(Res.drawable.logo_darmajaya), "Logo IIB Darmajaya", Modifier.size(56.dp))
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Eyebrow("Mahasiswa peneliti")
-            Text("Ahmad Safrudin Kurniawan", style = MaterialTheme.typography.titleMedium)
-            Text("S1 Teknik Informatika", style = MaterialTheme.typography.bodySmall, color = Palette.TextMuted)
+            Text("Institut Informatika dan Bisnis Darmajaya", style = MaterialTheme.typography.titleSmall)
+            Text("Bandar Lampung", style = MaterialTheme.typography.bodySmall, color = Palette.TextMuted)
         }
     }
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Space.s)) {
-        PlainIcon(Icons.Outlined.School, Palette.Accent, 18.dp)
-        Text(
-            "Fakultas Ilmu Komputer · Institut Informatika dan Bisnis Darmajaya, Bandar Lampung",
-            style = MaterialTheme.typography.bodySmall, color = Palette.TextMuted,
-        )
-    }
-    Box(Modifier.fillMaxWidth().clip(MaterialTheme.shapes.medium).background(Palette.SoftAccent).padding(Space.m)) {
-        Text(
+    Hairline()
+    Column(verticalArrangement = Arrangement.spacedBy(Space.s)) {
+        IdRow("Nama", "Ahmad Safrudin Kurniawan", strong = true)
+        IdRow("NIM", "2311010132")
+        IdRow("Prodi", "S1 Teknik Informatika, Fakultas Ilmu Komputer")
+        IdRow(
+            "Skripsi",
             "Perbandingan Efisiensi Arsitektur VGG16, ResNet50, dan InceptionV3 untuk Klasifikasi Tingkat " +
-                "Kesegaran Ikan Berdasarkan Citra Mata pada Perangkat Terbatas",
-            style = MaterialTheme.typography.titleSmall, color = Palette.PrimaryPressed,
+                "Kesegaran Ikan Berdasarkan Citra Mata untuk Inferensi di Ponsel",
         )
     }
+}
+
+@Composable
+private fun IdRow(key: String, value: String, strong: Boolean = false) = Row {
+    Text(key, Modifier.width(64.dp), style = MaterialTheme.typography.bodyMedium, color = Palette.TextMuted)
+    Text(":", Modifier.width(12.dp), style = MaterialTheme.typography.bodyMedium, color = Palette.TextMuted)
+    Text(
+        value, Modifier.weight(1f),
+        style = if (strong) MaterialTheme.typography.titleSmall else MaterialTheme.typography.bodyMedium,
+    )
 }
 
 /* ---------- Pertanyaan ---------- */
 
 @Composable
 private fun QuestionCard() = Panel {
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Space.m)) {
-        Image(FishLogo, null, Modifier.size(44.dp))
-        Text(
-            "Arsitektur mana yang paling tepat sekaligus paling ringan untuk menilai kesegaran ikan dari foto mata, langsung di ponsel?",
-            Modifier.weight(1f), style = MaterialTheme.typography.titleSmall,
-        )
-    }
-    Row(horizontalArrangement = Arrangement.spacedBy(Space.s)) {
+    Eyebrow("Pertanyaan penelitian")
+    Text(
+        "Arsitektur mana yang paling tepat sekaligus paling ringan untuk menilai kesegaran ikan dari foto mata, langsung di ponsel?",
+        style = MaterialTheme.typography.titleSmall,
+    )
+}
+
+/* ---------- Ciri mata per kelas ---------- */
+
+private val features = listOf(
+    "Bola mata" to listOf("Cembung", "Rata", "Cekung"),
+    "Kornea" to listOf("Jernih", "Agak keruh", "Keruh, putih susu"),
+    "Pupil" to listOf("Hitam pekat", "Agak keabuan", "Kelabu"),
+    "Kilau" to listOf("Cemerlang", "Agak redup", "Kusam"),
+)
+
+/** Tabel pembanding: kolom = kelas (dengan ilustrasi mata), baris = bagian mata yang diamati. */
+@Composable
+private fun EyeTraits() {
+    Row(horizontalArrangement = Arrangement.spacedBy(Space.xs)) {
+        Spacer(Modifier.width(68.dp))
         FreshnessClass.entries.forEach { c ->
-            Column(
-                Modifier.weight(1f).clip(MaterialTheme.shapes.medium).background(c.softColor()).padding(vertical = Space.m),
-                horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(Space.xs),
-            ) {
-                PlainIcon(c.icon(), c.color(), 22.dp)
-                Text(c.labelId, style = MaterialTheme.typography.labelMedium, color = c.color())
+            Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(Space.xs)) {
+                EyeIllustration(c, Modifier.size(52.dp))
+                Text(c.labelId, style = MaterialTheme.typography.labelMedium, color = c.color(), textAlign = TextAlign.Center)
+            }
+        }
+    }
+    features.forEach { (part, vals) ->
+        Hairline()
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Space.xs)) {
+            Text(part, Modifier.width(68.dp), style = MaterialTheme.typography.titleSmall)
+            vals.forEachIndexed { i, v ->
+                val c = FreshnessClass.entries[i]
+                Box(
+                    Modifier.weight(1f).heightIn(min = 40.dp).clip(RoundedCornerShape(8.dp)).background(c.softColor()).padding(Space.xs),
+                    contentAlignment = Alignment.Center,
+                ) { Text(v, style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.Center) }
             }
         }
     }
     Text(
-        "Mata segar jernih dan berkilau; makin lama makin keruh, kusam, dan cekung.",
+        "Gambaran umum dari uji organoleptik mata ikan (SNI 2729:2013) dan Muchtar dkk. (2024). Model belajar " +
+            "membedakan perubahan ini langsung dari foto.",
         style = MaterialTheme.typography.bodySmall, color = Palette.TextMuted,
     )
+}
+
+/** Ilustrasi mata: makin tidak segar, kornea makin berkabut, kilau hilang, dan bola mata tampak cekung. */
+@Composable
+private fun EyeIllustration(c: FreshnessClass, modifier: Modifier = Modifier) = Canvas(modifier) {
+    val r = size.minDimension / 2f
+    val o = center
+    val (haze, glint, sunken) = when (c) {
+        FreshnessClass.HIGHLY_FRESH -> Triple(0f, 1f, 0f)
+        FreshnessClass.FRESH -> Triple(0.28f, 0.6f, 0.35f)
+        FreshnessClass.NOT_FRESH -> Triple(0.62f, 0f, 1f)
+    }
+    drawCircle(Color(0xFFCBD5E1), r, o)                                   // tepi rongga mata
+    drawCircle(Color(0xFFE2E8F0), r * 0.9f, o)                            // sklera
+    drawCircle(Color(0xFF7C6A3A), r * 0.72f, o)                           // iris
+    drawCircle(Color(0xFF0B1220), r * 0.42f, o)                           // pupil
+    if (sunken > 0f) drawCircle(                                         // bayangan cekung di tepi atas
+        Brush.radialGradient(listOf(Color.Transparent, Color(0x99334155)), center = o.copy(y = o.y + r * 0.25f), radius = r),
+        r * 0.9f, o, alpha = sunken,
+    )
+    if (haze > 0f) drawCircle(Color(0xFFF1F5F9), r * 0.72f, o, alpha = haze) // kornea keruh
+    if (glint > 0f) {
+        drawCircle(Color.White, r * 0.16f, Offset(o.x + r * 0.26f, o.y - r * 0.28f), alpha = glint)
+        drawCircle(Color.White, r * 0.07f, Offset(o.x - r * 0.2f, o.y + r * 0.22f), alpha = glint * 0.8f)
+    }
 }
 
 /* ---------- Alur ---------- */
@@ -139,10 +199,10 @@ private fun QuestionCard() = Panel {
 private data class Step(val icon: ImageVector, val title: String, val desc: String)
 
 private val steps = listOf(
-    Step(Icons.Outlined.Dataset, "Kumpulkan data", "MFED untuk latih & uji, FFE untuk uji lintas dataset."),
+    Step(Icons.Outlined.Dataset, "Kumpulkan data", "MFED untuk latih dan uji, FFE untuk uji lintas dataset."),
     Step(Icons.Outlined.Crop, "Praproses", "Citra utuh atau crop mata, diubah ke 224 × 224 piksel."),
     Step(Icons.Outlined.Memory, "Latih 3 CNN", "VGG16, ResNet50, InceptionV3 dengan transfer learning."),
-    Step(Icons.Outlined.Analytics, "Uji & bandingkan", "Kinerja di MFED, ketahanan di FFE, dan efisiensi."),
+    Step(Icons.Outlined.Analytics, "Uji dan bandingkan", "Kinerja di MFED, ketahanan di FFE, dan efisiensi."),
     Step(Icons.Outlined.PhoneAndroid, "Jalankan di ponsel", "Model terbaik dipakai aplikasi ini, tanpa internet."),
     Step(Icons.Outlined.Storefront, "Validasi lapangan", "Diuji pada foto ikan dari pasar (data primer)."),
 )
@@ -298,8 +358,8 @@ private fun Measures() {
     val items = listOf(
         Triple(Icons.Outlined.Analytics, "Kinerja", "Accuracy, precision, recall, F1 macro, confusion matrix"),
         Triple(Icons.Outlined.SyncAlt, "Generalisasi", "ΔF1 = F1 MFED − F1 FFE; makin kecil makin stabil"),
-        Triple(Icons.Outlined.Speed, "Efisiensi", "Parameter, ukuran berkas, waktu latih & inferensi (CPU 4 thread), memori"),
-        Triple(Icons.Outlined.Visibility, "Interpretasi", "Grad-CAM: apakah model melihat kornea & pupil"),
+        Triple(Icons.Outlined.Speed, "Efisiensi", "Parameter, ukuran berkas, waktu latih, waktu inferensi (CPU 4 thread), memori"),
+        Triple(Icons.Outlined.Visibility, "Interpretasi", "Grad-CAM: apakah model melihat kornea dan pupil"),
     )
     Column(verticalArrangement = Arrangement.spacedBy(Space.s)) {
         items.chunked(2).forEach { pair ->

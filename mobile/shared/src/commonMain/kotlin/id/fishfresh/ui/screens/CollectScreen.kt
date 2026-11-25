@@ -141,7 +141,7 @@ fun CollectScreen(vm: CollectViewModel, onAdjust: () -> Unit, onAgain: (sameFish
                 verticalArrangement = Arrangement.spacedBy(Space.m),
             ) {
                 ContainedLoadingIndicator(Modifier.size(80.dp))
-                Text("Menyimpan & menjalankan model…", style = MaterialTheme.typography.bodyMedium)
+                Text("Menyimpan dan menjalankan model…", style = MaterialTheme.typography.bodyMedium)
             }
 
             CollectStep.SAVED -> {

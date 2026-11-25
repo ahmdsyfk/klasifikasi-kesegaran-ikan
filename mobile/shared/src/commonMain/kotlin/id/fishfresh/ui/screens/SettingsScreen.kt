@@ -74,7 +74,7 @@ fun SettingsScreen(vm: SettingsViewModel, models: ModelViewModel) {
         }
 
         Section(title = "Inferensi di ponsel") {
-            Field("Jumlah thread CPU", "Proposal mengukur dengan 4 thread. Kurangi untuk meniru ponsel yang lebih lemah.") {
+            Field("Jumlah thread CPU", "Proposal mengukur dengan 4 thread. Pilihan lain untuk membandingkan kecepatan inferensi.") {
                 Segmented(listOf(1 to "1", 2 to "2", 4 to "4"), s.threads, vm::setThreads)
             }
         }
