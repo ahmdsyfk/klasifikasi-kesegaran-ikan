@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CameraAlt
 import androidx.compose.material.icons.outlined.CloudDownload
+import androidx.compose.material.icons.outlined.SystemUpdateAlt
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Insights
 import androidx.compose.material.icons.outlined.PhotoLibrary
@@ -138,6 +139,14 @@ private fun ModelSection(st: ModelUiState, onChange: () -> Unit, onCompare: (Boo
                 ) {
                     PlainIcon(Icons.Outlined.CloudDownload, Palette.Primary, 20.dp)
                     Text("Unduh ${m.archName} (${fmt(m.fileMb)} MB) untuk dipakai offline",
+                        style = MaterialTheme.typography.bodySmall, color = Palette.PrimaryPressed)
+                }
+                is ModelState.UpdateAvailable -> Row(
+                    Modifier.fillMaxWidth().heightIn(min = 48.dp).clickable { onDownload(m.id) },
+                    verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Space.s),
+                ) {
+                    PlainIcon(Icons.Outlined.SystemUpdateAlt, Palette.Primary, 20.dp)
+                    Text("Pembaruan ${m.archName} tersedia (${fmt(m.fileMb)} MB). Ketuk untuk memperbarui; versi lama tetap dipakai sampai selesai.",
                         style = MaterialTheme.typography.bodySmall, color = Palette.PrimaryPressed)
                 }
                 is ModelState.Failed -> Notice("${m.archName}: ${s.message}")

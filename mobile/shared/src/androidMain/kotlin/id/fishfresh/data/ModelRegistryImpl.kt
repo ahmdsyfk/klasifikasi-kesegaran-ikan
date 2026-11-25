@@ -19,6 +19,8 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.builtins.MapSerializer
+import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
@@ -46,6 +48,11 @@ class ModelRegistryImpl(
 ) : ModelRegistry, ModelFiles {
     private val dir = File(context.filesDir, "models").apply { mkdirs() }
     private val cacheFile = File(dir, "registry.json")
+    // Harus diinisialisasi sebelum _states (computeStates membaca peta ini).
+    private val installedFile = File(dir, "installed.json")
+    private val installedSer = MapSerializer(String.serializer(), Installed.serializer())
+    private val installed: MutableMap<String, Installed> =
+        runCatching { json.decodeFromString(installedSer, installedFile.readText()).toMutableMap() }.getOrDefault(mutableMapOf())
     private val listSer = ListSerializer(ModelEntry.serializer())
     private val bundled: List<ModelEntry> = loadBundled()
     private val _models = MutableStateFlow(merge(loadCache()))
@@ -62,14 +69,29 @@ class ModelRegistryImpl(
 
     private fun fileFor(m: ModelEntry) = File(dir, "${m.id}-${m.fileSha256.take(12)}.tflite")
 
+    /** Versi yang terpasang per model (id -> berkas, versi, kuantisasi), agar versi lama tetap bisa dipakai. */
+    @Serializable
+    private data class Installed(val file: String, val sha256: String, val version: String, val quantization: String)
+
+
+    private fun saveInstalled() = synchronized(installed) { installedFile.writeText(json.encodeToString(installedSer, installed.toMap())) }
+
+    /** Berkas versi terpasang sebelumnya yang masih ada (dipakai sampai versi baru selesai diunduh). */
+    private fun previous(m: ModelEntry): Installed? =
+        installed[m.id]?.takeIf { it.sha256 != m.fileSha256 && File(dir, it.file).exists() }
+
     override fun locate(model: ModelEntry): ModelSource? = when {
         model.bundled -> ModelSource.Asset("models/${model.filePath}")
-        fileFor(model).exists() -> ModelSource.Local(fileFor(model))
-        else -> null
+        fileFor(model).exists() -> ModelSource.Local(fileFor(model), model.version, model.quantization)
+        else -> previous(model)?.let { ModelSource.Local(File(dir, it.file), it.version, it.quantization) }
     }
 
-    private fun computeStates(list: List<ModelEntry>) =
-        list.associate { it.id to if (locate(it) != null) ModelState.Ready else ModelState.NotDownloaded }
+    private fun stateOf(m: ModelEntry): ModelState = when {
+        m.bundled || fileFor(m).exists() -> ModelState.Ready
+        else -> previous(m)?.let { ModelState.UpdateAvailable(it.version) } ?: ModelState.NotDownloaded
+    }
+
+    private fun computeStates(list: List<ModelEntry>) = list.associate { it.id to stateOf(it) }
 
     override suspend fun refresh(): Result<Unit> = withContext(Dispatchers.IO) {
         runCatching {
@@ -79,9 +101,14 @@ class ModelRegistryImpl(
             val merged = merge(remote)
             _models.value = merged
             _states.update { old -> computeStates(merged).mapValues { (id, s) -> (old[id] as? ModelState.Downloading) ?: s } }
-            // Bersihkan berkas versi lama yang tidak lagi ada di registry.
-            val keep = merged.map { fileFor(it).name }.toSet()
-            dir.listFiles { f -> f.extension == "tflite" && f.name !in keep }?.forEach { it.delete() }
+            // Hapus hanya berkas model yang sudah tidak ada di registry. Versi lama dari model yang masih
+            // ada TIDAK dihapus di sini: tetap dipakai sampai versi barunya selesai diunduh.
+            val ids = merged.map { it.id }.toSet()
+            dir.listFiles { f -> f.extension == "tflite" }?.forEach { f ->
+                if (ids.none { f.name.startsWith("$it-") }) f.delete()
+            }
+            synchronized(installed) { installed.keys.retainAll(ids) }
+            saveInstalled()
         }
     }
 
@@ -94,15 +121,24 @@ class ModelRegistryImpl(
         return json.decodeFromString(RegistryFile.serializer(), text).models.filter { it.active }.map { it.toEntry() }
     }
 
+    override suspend fun ensureUsable(id: String): Result<Unit> {
+        val m = _models.value.firstOrNull { it.id == id } ?: return Result.failure(IllegalStateException("Model tidak ada"))
+        return if (locate(m) != null) Result.success(Unit) else ensureDownloaded(id)
+    }
+
     override suspend fun ensureDownloaded(id: String): Result<Unit> = withContext(Dispatchers.IO) {
         val m = _models.value.firstOrNull { it.id == id } ?: return@withContext Result.failure(IllegalStateException("Model tidak ada"))
-        if (locate(m) != null) return@withContext Result.success(Unit)
+        if (m.bundled || fileFor(m).exists()) return@withContext Result.success(Unit)
         val lock = synchronized(locks) { locks.getOrPut(id) { Mutex() } }
         lock.withLock {
-            if (locate(m) != null) return@withLock Result.success(Unit)
+            if (fileFor(m).exists()) return@withLock Result.success(Unit)
             runCatching { download(m) }
                 .onSuccess { _states.update { it + (id to ModelState.Ready) } }
-                .onFailure { e -> _states.update { it + (id to ModelState.Failed(e.message ?: "Unduhan gagal")) } }
+                .onFailure { e ->
+                    // Gagal memperbarui: versi lama tetap dipakai.
+                    val back = previous(m)?.let { ModelState.UpdateAvailable(it.version) }
+                    _states.update { it + (id to (back ?: ModelState.Failed(e.message ?: "Unduhan gagal"))) }
+                }
         }
     }
 
@@ -132,13 +168,21 @@ class ModelRegistryImpl(
             if (sha != m.fileSha256) { tmp.delete(); error("Berkas model rusak (SHA-256 tidak cocok)") }
         }
         tmp.renameTo(fileFor(m))
+        // Versi baru lolos verifikasi: baru sekarang versi lama dihapus.
+        classifier?.evict(m.id)
+        dir.listFiles { f -> f.name.startsWith("${m.id}-") && f.extension == "tflite" && f.name != fileFor(m).name }
+            ?.forEach { it.delete() }
+        synchronized(installed) { installed[m.id] = Installed(fileFor(m).name, m.fileSha256, m.version, m.quantization) }
+        saveInstalled()
     }
 
     override fun delete(id: String) {
         val m = _models.value.firstOrNull { it.id == id } ?: return
         if (m.bundled) return
         classifier?.evict(id)
-        fileFor(m).delete()
+        dir.listFiles { f -> f.name.startsWith("$id-") && f.extension == "tflite" }?.forEach { it.delete() }
+        synchronized(installed) { installed.remove(id) }
+        saveInstalled()
         _states.update { it + (id to ModelState.NotDownloaded) }
     }
 

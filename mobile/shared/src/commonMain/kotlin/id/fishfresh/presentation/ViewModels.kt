@@ -49,7 +49,7 @@ suspend fun runModels(
     models: List<ModelEntry>, registry: ModelRegistry, classifier: Classifier,
     photo: StoredPhoto, circle: EyeCircle?, threads: Int,
 ): List<Prediction> = models.map { m ->
-    registry.ensureDownloaded(m.id).getOrThrow()
+    registry.ensureUsable(m.id).getOrThrow()
     classifier.classify(photo, circle, m, threads)
 }
 
@@ -88,12 +88,12 @@ class ModelViewModel(
 
     fun select(id: String) {
         settings.update { it.copy(modelId = id) }
-        viewModelScope.launch { registry.ensureDownloaded(id) }
+        viewModelScope.launch { registry.ensureUsable(id) }
     }
 
     fun setCompare(on: Boolean) {
         settings.update { it.copy(compareArchs = on) }
-        if (on) viewModelScope.launch { state.value.active.forEach { registry.ensureDownloaded(it.id) } }
+        if (on) viewModelScope.launch { state.value.active.forEach { registry.ensureUsable(it.id) } }
     }
 
     fun download(id: String) = viewModelScope.launch { registry.ensureDownloaded(id) }

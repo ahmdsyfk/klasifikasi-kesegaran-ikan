@@ -104,7 +104,7 @@ private fun ArchOption(m: ModelEntry, selected: Boolean, state: ModelState?, onC
         Column(Modifier.weight(1f).padding(top = 10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(m.archName + (m.seed?.let { " · seed $it" } ?: ""), Modifier.weight(1f), style = MaterialTheme.typography.titleMedium)
-                if (state == ModelState.Ready || m.bundled) PlainIcon(Icons.Outlined.CloudDone, Palette.Accent, 18.dp, "Tersedia offline")
+                if (state == ModelState.Ready || state is ModelState.UpdateAvailable || m.bundled) PlainIcon(Icons.Outlined.CloudDone, Palette.Accent, 18.dp, "Tersedia offline")
             }
             m.metrics.f1Mfed?.let { KeyValue("F1 MFED (uji)", fmt(it, 3)) }
             m.metrics.f1Ffe?.let { KeyValue("F1 FFE (lintas dataset)", fmt(it, 3)) }

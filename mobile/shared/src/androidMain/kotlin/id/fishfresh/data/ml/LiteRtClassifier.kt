@@ -31,7 +31,8 @@ fun interface ModelFiles {
 
 sealed interface ModelSource {
     data class Asset(val path: String) : ModelSource
-    data class Local(val file: File) : ModelSource
+    /** [version]/[quantization] = versi berkas yang benar-benar dipakai (bisa versi lama saat ada pembaruan). */
+    data class Local(val file: File, val version: String? = null, val quantization: String? = null) : ModelSource
 }
 
 /**
@@ -48,16 +49,18 @@ class LiteRtClassifier(private val context: Context, private val files: ModelFil
                 val t0 = System.nanoTime()
                 val input = preprocess(photo, circle, model)
                 val t1 = System.nanoTime()
-                val itp = interpreter(model, threads)
+                val (itp, src) = interpreter(model, threads)
                 val out = Array(1) { FloatArray(model.classes.size) }
                 itp.run(input, out)
                 val t2 = System.nanoTime()
                 Prediction(
-                    modelId = model.id, modelVersion = model.version, scenario = model.scenario,
+                    // Catat versi berkas yang benar-benar dijalankan, bukan versi terbaru di registry.
+                    modelId = model.id, modelVersion = (src as? ModelSource.Local)?.version ?: model.version,
+                    scenario = model.scenario,
                     scenarioName = model.scenarioName, archName = model.archName, inputVariant = model.inputVariant,
                     scores = model.classes.mapIndexed { i, k -> ClassScore(FreshnessClass.fromKey(k), out[0][i]) },
                     preprocessMs = (t1 - t0) / 1e6, inferenceMs = (t2 - t1) / 1e6, threads = threads,
-                    quantization = model.quantization,
+                    quantization = (src as? ModelSource.Local)?.quantization ?: model.quantization,
                 )
             }
         }
@@ -78,15 +81,16 @@ class LiteRtClassifier(private val context: Context, private val files: ModelFil
         return buf
     }
 
-    private fun interpreter(model: ModelEntry, threads: Int): Interpreter {
-        val key = "${model.id}@${model.fileSha256}#$threads"
-        cache[key]?.let { return it }
+    private fun interpreter(model: ModelEntry, threads: Int): Pair<Interpreter, ModelSource> {
         val src = files.locate(model) ?: error("Model ${model.archName} belum diunduh")
+        val ident = when (src) { is ModelSource.Asset -> src.path; is ModelSource.Local -> src.file.name }
+        val key = "${model.id}@$ident#$threads"
+        cache[key]?.let { return it to src }
         val itp = Interpreter(map(src), Interpreter.Options().setNumThreads(threads))
         cache[key] = itp
         // Batasi memori: maksimal 3 interpreter (cukup untuk mode bandingkan 3 arsitektur).
         while (cache.size > 3) cache.remove(cache.keys.first())?.close()
-        return itp
+        return itp to src
     }
 
     fun evict(modelId: String) {

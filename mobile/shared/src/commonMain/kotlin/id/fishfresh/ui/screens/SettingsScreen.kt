@@ -11,6 +11,10 @@ import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material.icons.outlined.Refresh
+import androidx.compose.material.icons.outlined.SystemUpdateAlt
+import androidx.compose.material3.TextButton
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.ButtonGroupDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -123,17 +127,27 @@ private fun ModelRow(m: ModelEntry, st: ModelState?, onDownload: () -> Unit, onD
                 f1 + when {
                     m.bundled -> "bawaan aplikasi"
                     st == ModelState.Ready -> "tersimpan · ${fmt(m.fileMb)} MB"
+                    st is ModelState.UpdateAvailable -> "pembaruan tersedia · ${fmt(m.fileMb)} MB"
                     st is ModelState.Downloading -> "mengunduh ${(st.progress * 100).toInt()}%"
                     st is ModelState.Failed -> st.message
                     else -> "${fmt(m.fileMb)} MB"
                 },
                 style = MaterialTheme.typography.bodySmall,
-                color = if (st is ModelState.Failed) Palette.Danger else Palette.TextMuted,
+                color = when (st) {
+                    is ModelState.Failed -> Palette.Danger
+                    is ModelState.UpdateAvailable -> Palette.PrimaryPressed
+                    else -> Palette.TextMuted
+                },
             )
         }
         when {
             m.bundled -> PlainIcon(Icons.Outlined.CheckCircle, Palette.Accent, 22.dp)
             st is ModelState.Downloading -> CircularProgressIndicator(progress = { st.progress }, modifier = Modifier.size(24.dp))
+            st is ModelState.UpdateAvailable -> TextButton(onClick = onDownload) {
+                PlainIcon(Icons.Outlined.SystemUpdateAlt, Palette.Primary, 18.dp)
+                Spacer(Modifier.width(Space.xs))
+                Text("Perbarui")
+            }
             st == ModelState.Ready -> IconButton(onClick = onDelete) {
                 PlainIcon(Icons.Outlined.DeleteOutline, Palette.TextMuted, contentDescription = "Hapus berkas model")
             }

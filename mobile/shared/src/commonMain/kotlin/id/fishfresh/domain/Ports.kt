@@ -7,15 +7,20 @@ sealed interface ModelState {
     data object NotDownloaded : ModelState
     data class Downloading(val progress: Float) : ModelState
     data object Ready : ModelState
+    /** Versi lama tersimpan dan masih dipakai; versi baru di registry belum diunduh. */
+    data class UpdateAvailable(val installedVersion: String) : ModelState
     data class Failed(val message: String) : ModelState
 }
 
 interface ModelRegistry {
-    /** Daftar model (salinan lokal dulu, lalu diperbarui dari Supabase di latar). */
+    /** Daftar model (salinan lokal dulu, lalu diperbarui dari registry rilis GitHub di latar). */
     val models: StateFlow<List<ModelEntry>>
     val states: StateFlow<Map<String, ModelState>>
     suspend fun refresh(): Result<Unit>
+    /** Unduh versi TERBARU (dipakai tombol unduh/perbarui). */
     suspend fun ensureDownloaded(id: String): Result<Unit>
+    /** Pastikan ADA versi yang bisa dijalankan; versi lama diterima, unduh hanya bila belum ada sama sekali. */
+    suspend fun ensureUsable(id: String): Result<Unit>
     fun delete(id: String)
 }
 
