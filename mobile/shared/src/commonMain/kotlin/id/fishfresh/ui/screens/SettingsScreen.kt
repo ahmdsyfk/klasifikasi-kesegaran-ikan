@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.DeleteOutline
-import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material3.ButtonGroupDefaults
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -26,7 +25,6 @@ import id.fishfresh.presentation.ModelViewModel
 import id.fishfresh.presentation.SettingsViewModel
 import id.fishfresh.ui.components.Hairline
 import id.fishfresh.ui.components.KeyValue
-import id.fishfresh.ui.components.NavRow
 import id.fishfresh.ui.components.PlainIcon
 import id.fishfresh.ui.components.ScreenColumn
 import id.fishfresh.ui.components.Section
@@ -61,7 +59,7 @@ private fun Field(label: String, hint: String? = null, content: @Composable () -
     }
 
 @Composable
-fun SettingsScreen(vm: SettingsViewModel, models: ModelViewModel, onAbout: () -> Unit) {
+fun SettingsScreen(vm: SettingsViewModel, models: ModelViewModel) {
     val s by vm.settings.collectAsState()
     val pending by vm.pending.collectAsState()
     val ms by models.state.collectAsState()
@@ -114,8 +112,6 @@ fun SettingsScreen(vm: SettingsViewModel, models: ModelViewModel, onAbout: () ->
         }
 
         Section(title = "Aplikasi") {
-            NavRow(Icons.Outlined.Info, "Tentang penelitian", "Tujuan, data, model, dan skenario eksperimen", onAbout)
-            Hairline()
             KeyValue("Versi", vm.platform.appVersion)
             KeyValue("Perangkat", vm.platform.deviceModel)
         }

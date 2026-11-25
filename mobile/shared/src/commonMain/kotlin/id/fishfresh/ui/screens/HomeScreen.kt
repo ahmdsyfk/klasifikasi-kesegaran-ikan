@@ -60,7 +60,6 @@ fun HomeScreen(
     onCamera: () -> Unit,
     onGallery: () -> Unit,
     onSettings: () -> Unit,
-    onAbout: () -> Unit,
 ) {
     val st by vm.state.collectAsState()
     var picker by remember { mutableStateOf(false) }
@@ -91,15 +90,6 @@ fun HomeScreen(
         if (st.isDemo) Notice("Model demo belum dilatih, jadi skornya belum bermakna. Model hasil penelitian menyusul.")
 
         ModelSection(st, onChange = { picker = true }, onCompare = vm::setCompare, onDownload = vm::download)
-
-        Row(
-            Modifier.fillMaxWidth().heightIn(min = 48.dp).clickable(onClick = onAbout),
-            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center,
-        ) {
-            PlainIcon(Icons.Outlined.Info, Palette.Primary, 18.dp)
-            Spacer(Modifier.width(Space.s))
-            Text("Tentang penelitian ini", style = MaterialTheme.typography.labelLarge, color = Palette.PrimaryPressed)
-        }
     }
 
     if (picker) ModelPickerSheet(st, onDismiss = { picker = false }, onSelect = { vm.select(it); picker = false })

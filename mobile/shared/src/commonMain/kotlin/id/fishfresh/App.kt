@@ -8,6 +8,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.CameraAlt
 import androidx.compose.material.icons.outlined.History
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.PhotoLibrary
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -80,6 +81,7 @@ private val tabs = listOf(
     Tab(HomeRoute, "Pindai", Icons.Outlined.CameraAlt),
     Tab(DataRoute, "Data Primer", Icons.Outlined.PhotoLibrary),
     Tab(HistoryRoute, "Riwayat", Icons.Outlined.History),
+    Tab(AboutRoute, "Tentang", Icons.Outlined.Info),
 )
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
@@ -93,7 +95,6 @@ fun App() = IkanSegarTheme {
     val onTab = tabs.any { t -> dest?.hasRoute(t.route::class) == true }
     val title = when {
         dest?.hasRoute(SettingsRoute::class) == true -> "Setelan"
-        dest?.hasRoute(AboutRoute::class) == true -> "Tentang"
         dest?.hasRoute(ReviewRoute::class) == true -> "Periksa foto"
         dest?.hasRoute(ResultRoute::class) == true -> "Hasil"
         dest?.hasRoute(CollectRoute::class) == true -> "Data primer"
@@ -161,13 +162,13 @@ private fun AppNavHost(nav: NavHostController, session: CaptureSession, platform
     NavHost(nav, startDestination = HomeRoute) {
         composable<HomeRoute> {
             HomeScreen(koinViewModel(), onCamera = { openCamera(false) }, onGallery = openGallery,
-                onSettings = { nav.navigate(SettingsRoute) }, onAbout = { nav.navigate(AboutRoute) })
+                onSettings = { nav.navigate(SettingsRoute) })
         }
         composable<DataRoute> {
             DataScreen(koinViewModel(), fmt, onCollect = { openCamera(true) }, onOpen = { nav.navigate(CaptureRoute(it)) })
         }
         composable<HistoryRoute> { HistoryScreen(koinViewModel(), fmt) { nav.navigate(ResultRoute(it)) } }
-        composable<SettingsRoute> { SettingsScreen(koinViewModel(), koinViewModel(), onAbout = { nav.navigate(AboutRoute) }) }
+        composable<SettingsRoute> { SettingsScreen(koinViewModel(), koinViewModel()) }
         composable<AboutRoute> { AboutScreen() }
         composable<CameraRoute> {
             CameraCapture(

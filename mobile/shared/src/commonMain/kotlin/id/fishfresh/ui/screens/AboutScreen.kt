@@ -1,152 +1,341 @@
 package id.fishfresh.ui.screens
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.AccountTree
 import androidx.compose.material.icons.outlined.Analytics
+import androidx.compose.material.icons.outlined.Crop
 import androidx.compose.material.icons.outlined.Dataset
-import androidx.compose.material.icons.outlined.ExpandLess
-import androidx.compose.material.icons.outlined.ExpandMore
-import androidx.compose.material.icons.outlined.Flag
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Memory
 import androidx.compose.material.icons.outlined.PhoneAndroid
-import androidx.compose.material.icons.outlined.Science
+import androidx.compose.material.icons.outlined.School
+import androidx.compose.material.icons.outlined.Speed
+import androidx.compose.material.icons.outlined.Storefront
+import androidx.compose.material.icons.outlined.SyncAlt
+import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import id.fishfresh.domain.FreshnessClass
 import id.fishfresh.ui.components.Eyebrow
 import id.fishfresh.ui.components.FishLogo
 import id.fishfresh.ui.components.Panel
 import id.fishfresh.ui.components.PlainIcon
 import id.fishfresh.ui.components.ScreenColumn
+import id.fishfresh.ui.components.ScreenHeader
+import id.fishfresh.ui.components.Section
+import id.fishfresh.ui.components.icon
 import id.fishfresh.ui.theme.Palette
 import id.fishfresh.ui.theme.Space
+import id.fishfresh.ui.theme.color
+import id.fishfresh.ui.theme.softColor
 
 /**
- * Ringkasan eksperimen penelitian. Isi disusun berlapis (ringkasan selalu tampil, rincian dibuka
- * per topik) agar pembaca tidak langsung dihadapkan pada seluruh detail sekaligus.
+ * Tab "Tentang": eksperimen penelitian disajikan sebagai infografis yang dibaca dari atas ke bawah
+ * (siapa → pertanyaan → alur → data → model → skenario → ukuran). Tiap blok berdiri sendiri,
+ * memakai angka besar dan ikon agar bisa dipindai tanpa membaca paragraf panjang.
  */
 @Composable
 fun AboutScreen() = ScreenColumn {
-    Row(Modifier.padding(top = Space.m), verticalAlignment = Alignment.CenterVertically) {
-        Image(FishLogo, null, Modifier.size(48.dp))
-        Column(Modifier.padding(start = Space.m)) {
-            Eyebrow("Penelitian skripsi · 2026")
-            Text("Tentang penelitian", style = MaterialTheme.typography.headlineSmall)
+    ScreenHeader("Tentang penelitian", eyebrow = "Penelitian skripsi · 2026")
+    StudentCard()
+    QuestionCard()
+    Section(title = "Alur eksperimen") { Pipeline() }
+    Section(title = "Data") { DataBlock() }
+    Section(title = "Tiga arsitektur CNN") { Architectures() }
+    Section(title = "Pelatihan dua fase") { TwoPhase() }
+    Section(title = "Skenario eksperimen") { Scenarios() }
+    Section(title = "Yang diukur") { Measures() }
+    Section(title = "Tentang aplikasi ini") { AppNotes() }
+}
+
+/* ---------- Mahasiswa ---------- */
+
+@Composable
+private fun StudentCard() = Panel(color = Color.White) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Space.l)) {
+        Box(Modifier.size(56.dp).clip(CircleShape).background(Palette.Primary), contentAlignment = Alignment.Center) {
+            Text("AS", style = MaterialTheme.typography.titleLarge, color = Color.White)
+        }
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Eyebrow("Mahasiswa peneliti")
+            Text("Ahmad Safrudin Kurniawan", style = MaterialTheme.typography.titleMedium)
+            Text("S1 Teknik Informatika", style = MaterialTheme.typography.bodySmall, color = Palette.TextMuted)
         }
     }
-
-    Panel {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Space.s)) {
+        PlainIcon(Icons.Outlined.School, Palette.Accent, 18.dp)
         Text(
-            "Perbandingan Efisiensi Arsitektur VGG16, ResNet50, dan InceptionV3 untuk Klasifikasi " +
-                "Tingkat Kesegaran Ikan Berdasarkan Citra Mata pada Perangkat Terbatas",
-            style = MaterialTheme.typography.titleMedium,
-        )
-        Text(
-            "Ahmad Safrudin Kurniawan · Teknik Informatika, Fakultas Ilmu Komputer, " +
-                "Institut Informatika dan Bisnis Darmajaya, Bandar Lampung",
+            "Fakultas Ilmu Komputer · Institut Informatika dan Bisnis Darmajaya, Bandar Lampung",
             style = MaterialTheme.typography.bodySmall, color = Palette.TextMuted,
         )
+    }
+    Box(Modifier.fillMaxWidth().clip(MaterialTheme.shapes.medium).background(Palette.SoftAccent).padding(Space.m)) {
         Text(
-            "Mata ikan segar umumnya jernih, cerah, dan berkilau; mata ikan yang tidak segar tampak keruh, " +
-                "kusam, atau cekung. Penelitian ini membandingkan tiga CNN untuk mengenali perubahan itu dari foto " +
-                "mata ke dalam tiga kelas: Sangat Segar, Segar, dan Tidak Segar. Yang dibandingkan bukan hanya " +
-                "ketepatan, tetapi juga kebutuhan komputasi dan kemampuan bertahan pada data dari sumber lain.",
-            style = MaterialTheme.typography.bodyMedium,
+            "Perbandingan Efisiensi Arsitektur VGG16, ResNet50, dan InceptionV3 untuk Klasifikasi Tingkat " +
+                "Kesegaran Ikan Berdasarkan Citra Mata pada Perangkat Terbatas",
+            style = MaterialTheme.typography.titleSmall, color = Palette.PrimaryPressed,
         )
     }
+}
 
-    Column(verticalArrangement = Arrangement.spacedBy(Space.item)) {
-        Topic(Icons.Outlined.Flag, "Tujuan", initiallyOpen = true) {
-            Bullet("Mengukur dan membandingkan accuracy, precision, recall, dan F1-score ketiga arsitektur, pada MFED maupun pada FFE tanpa pelatihan ulang.")
-            Bullet("Mengukur dan membandingkan efisiensinya: jumlah parameter, ukuran model, waktu pelatihan, waktu inferensi, dan penggunaan memori pada perangkat terbatas.")
+/* ---------- Pertanyaan ---------- */
+
+@Composable
+private fun QuestionCard() = Panel {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Space.m)) {
+        Image(FishLogo, null, Modifier.size(44.dp))
+        Text(
+            "Arsitektur mana yang paling tepat sekaligus paling ringan untuk menilai kesegaran ikan dari foto mata, langsung di ponsel?",
+            Modifier.weight(1f), style = MaterialTheme.typography.titleSmall,
+        )
+    }
+    Row(horizontalArrangement = Arrangement.spacedBy(Space.s)) {
+        FreshnessClass.entries.forEach { c ->
+            Column(
+                Modifier.weight(1f).clip(MaterialTheme.shapes.medium).background(c.softColor()).padding(vertical = Space.m),
+                horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(Space.xs),
+            ) {
+                PlainIcon(c.icon(), c.color(), 22.dp)
+                Text(c.labelId, style = MaterialTheme.typography.labelMedium, color = c.color())
+            }
         }
-        Topic(Icons.Outlined.Dataset, "Data") {
-            Term("MFED (data utama)", "Multistage Fish Eyes Dataset v2: 4.800 citra mata dua spesies ikan air tawar, 1.600 per kelas. Dibagi 70 : 15 : 15 untuk latih, validasi, dan uji secara terstratifikasi.")
-            Term("FFE (uji lintas dataset)", "Freshness of the Fish Eyes v1: ±4.392 citra dari delapan spesies. Hanya dipakai untuk menguji, tanpa pelatihan ulang, agar terlihat apakah model tetap baik pada data dari sumber berbeda.")
-            Term("Anti kebocoran data", "Citra identik dibuang dan citra hampir-duplikat (pHash) dikelompokkan, sehingga satu kelompok tidak pernah terpecah ke data latih dan data uji.")
-            Term("Data primer (aplikasi ini)", "Foto mata ikan dari pasar, diberi label oleh pengumpul. Disimpan sebagai Primer 1 dan Primer 2; beberapa foto dari ikan yang sama diberi kode ikan yang sama agar tetap satu kelompok saat pembagian data.")
-        }
-        Topic(Icons.Outlined.Memory, "Model & pelatihan") {
-            Term("Arsitektur", "VGG16, ResNet50, InceptionV3 dengan bobot pralatih ImageNet; kepala klasifikasi GAP → Dropout → Dense 256 → Dropout → Softmax 3 kelas. Input 224 × 224 piksel.")
-            Term("Dua fase", "Fase 1: backbone dibekukan (learning rate 1e-3). Fase 2: 30% lapisan teratas dibuka untuk fine-tuning (1e-5). Model terbaik dipilih dari val_loss terendah dengan early stopping.")
-            Term("Augmentasi", "Rotasi, gamma, noise, transformasi perspektif, flip horizontal, dan kecerahan.")
-        }
-        Topic(Icons.Outlined.Science, "Skenario eksperimen") {
-            Term("Baseline", "Sesuai proposal: citra utuh di-resize 224 px.")
-            Term("Crop mata", "Hanya area mata: crop persegi berpusat di mata (1,10 × ukuran mata), area di luar lingkaran dihitamkan, lalu 224 px. Di aplikasi, crop ini dibuat dari lingkaran pada kamera.")
-            Term("K1 · Multi-seed", "Diulang dengan seed 42, 123, dan 2026, lalu diuji signifikansinya dengan McNemar.")
-            Term("K2 · Tanpa fine-tuning", "Backbone tetap beku untuk melihat kontribusi fine-tuning.")
-            Term("K3 · Inception 299 px", "InceptionV3 pada resolusi aslinya.")
-            Term("K4 · Tanpa augmentasi", "Mengukur pengaruh augmentasi pada MFED dan FFE.")
-            Term("K5–K8", "Class weight + label smoothing, fine-tuning lebih dalam (60%), skala thread 1/2/4/8, dan mixed precision.")
-            Term("Validasi lapangan", "Model diuji pada data primer dari pasar yang dikumpulkan dengan aplikasi ini.")
-        }
-        Topic(Icons.Outlined.Analytics, "Cara mengukur") {
-            Term("Kinerja", "Accuracy, precision, recall, F1-score macro, dan confusion matrix (terutama Sangat Segar ↔ Segar yang paling mudah tertukar).")
-            Term("Generalisasi", "ΔF1 = F1 MFED − F1 FFE. Makin kecil, makin stabil model pada data dari sumber lain.")
-            Term("Efisiensi", "Jumlah parameter, ukuran berkas, waktu pelatihan, waktu inferensi di CPU 4 thread (batch 1), dan memori puncak.")
-            Term("Interpretasi", "Grad-CAM untuk melihat apakah model benar-benar memperhatikan kornea dan pupil.")
-        }
-        Topic(Icons.Outlined.PhoneAndroid, "Tentang aplikasi") {
-            Bullet("Model berjalan di ponsel (LiteRT) dan bisa dipakai tanpa internet. Waktu praproses dan inferensi di ponsel ikut dicatat.")
-            Bullet("Praproses di ponsel identik dengan pelatihan; kecocokannya diuji piksel per piksel terhadap kode Python.")
-            Bullet("Semua skor kelas ditampilkan, bukan hanya kelas teratas, agar hasil dapat dianalisis.")
-            Bullet("Saat mengumpulkan data, label dipilih lebih dulu; skor model baru ditampilkan setelah disimpan agar penilaian pengumpul tidak terpengaruh.")
-            Bullet("Aplikasi ini alat pendukung penelitian (pengambilan data primer dan demonstrasi), bukan pengganti pemeriksaan mutu ikan secara resmi.")
-        }
-        Topic(Icons.Outlined.Lock, "Privasi") {
-            Bullet("Tanpa akun. Setiap instalasi mendapat identitas anonim; ponsel hanya bisa melihat data miliknya sendiri.")
-            Bullet("Yang diunggah: foto mata ikan, label, jenis ikan, nama pasar, catatan, model ponsel, dan skor model. Tidak ada lokasi GPS atau data pribadi.")
+    }
+    Text(
+        "Mata segar jernih dan berkilau; makin lama makin keruh, kusam, dan cekung.",
+        style = MaterialTheme.typography.bodySmall, color = Palette.TextMuted,
+    )
+}
+
+/* ---------- Alur ---------- */
+
+private data class Step(val icon: ImageVector, val title: String, val desc: String)
+
+private val steps = listOf(
+    Step(Icons.Outlined.Dataset, "Kumpulkan data", "MFED untuk latih & uji, FFE untuk uji lintas dataset."),
+    Step(Icons.Outlined.Crop, "Praproses", "Citra utuh atau crop mata, diubah ke 224 × 224 piksel."),
+    Step(Icons.Outlined.Memory, "Latih 3 CNN", "VGG16, ResNet50, InceptionV3 dengan transfer learning."),
+    Step(Icons.Outlined.Analytics, "Uji & bandingkan", "Kinerja di MFED, ketahanan di FFE, dan efisiensi."),
+    Step(Icons.Outlined.PhoneAndroid, "Jalankan di ponsel", "Model terbaik dipakai aplikasi ini, tanpa internet."),
+    Step(Icons.Outlined.Storefront, "Validasi lapangan", "Diuji pada foto ikan dari pasar (data primer)."),
+)
+
+@Composable
+private fun Pipeline() = Column {
+    steps.forEachIndexed { i, s ->
+        Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(Space.m)) {
+            Column(Modifier.fillMaxHeight(), horizontalAlignment = Alignment.CenterHorizontally) {
+                Box(Modifier.size(36.dp).clip(CircleShape).background(Palette.Primary), contentAlignment = Alignment.Center) {
+                    Text("${i + 1}", style = MaterialTheme.typography.titleSmall, color = Color.White)
+                }
+                if (i < steps.lastIndex) Box(Modifier.width(2.dp).weight(1f).background(Palette.Divider))
+            }
+            Column(Modifier.weight(1f).padding(bottom = if (i < steps.lastIndex) Space.l else 0.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Space.s)) {
+                    PlainIcon(s.icon, Palette.Accent, 18.dp)
+                    Text(s.title, style = MaterialTheme.typography.titleSmall)
+                }
+                Text(s.desc, style = MaterialTheme.typography.bodySmall, color = Palette.TextMuted)
+            }
         }
     }
 }
 
+/* ---------- Data ---------- */
+
 @Composable
-private fun Topic(icon: ImageVector, title: String, initiallyOpen: Boolean = false, content: @Composable () -> Unit) {
-    var open by rememberSaveable { mutableStateOf(initiallyOpen) }
-    Panel(padding = Space.card) {
-        Row(
-            Modifier.fillMaxWidth().heightIn(min = 40.dp).clickable { open = !open },
-            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Space.m),
-        ) {
-            PlainIcon(icon, Palette.Accent, 22.dp)
-            Text(title, Modifier.weight(1f), style = MaterialTheme.typography.titleMedium)
-            PlainIcon(if (open) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore, Palette.TextMuted, 22.dp)
+private fun DataBlock() {
+    Row(horizontalArrangement = Arrangement.spacedBy(Space.s)) {
+        Stat("4.800", "citra MFED", "2 spesies · 1.600 per kelas")
+        Stat("±4.392", "citra FFE", "8 spesies · hanya untuk uji")
+    }
+    Column(verticalArrangement = Arrangement.spacedBy(Space.xs)) {
+        Text("Pembagian MFED (terstratifikasi)", style = MaterialTheme.typography.titleSmall)
+        Row(Modifier.fillMaxWidth().height(28.dp).clip(RoundedCornerShape(8.dp))) {
+            SplitPart(0.70f, "Latih 70%", Palette.Primary)
+            SplitPart(0.15f, "Val 15%", Palette.Accent)
+            SplitPart(0.15f, "Uji 15%", Palette.PrimaryPressed)
         }
-        AnimatedVisibility(open) {
-            Column(verticalArrangement = Arrangement.spacedBy(Space.m)) { content() }
+    }
+    Text(
+        "Citra identik dibuang dan citra hampir kembar dikelompokkan, agar tidak ada yang bocor dari data latih ke data uji.",
+        style = MaterialTheme.typography.bodySmall, color = Palette.TextMuted,
+    )
+}
+
+@Composable
+private fun RowScope.Stat(value: String, label: String, note: String) = Column(
+    Modifier.weight(1f).clip(MaterialTheme.shapes.medium).background(Color.White)
+        .border(1.dp, Palette.Divider, MaterialTheme.shapes.medium).padding(Space.m),
+) {
+    Text(value, style = MaterialTheme.typography.headlineMedium, color = Palette.Primary)
+    Text(label, style = MaterialTheme.typography.titleSmall)
+    Text(note, style = MaterialTheme.typography.bodySmall, color = Palette.TextMuted)
+}
+
+@Composable
+private fun RowScope.SplitPart(w: Float, label: String, c: Color) = Box(
+    Modifier.weight(w).fillMaxHeight().background(c), contentAlignment = Alignment.Center,
+) { Text(label, style = MaterialTheme.typography.labelSmall, color = Color.White, maxLines = 1) }
+
+/* ---------- Arsitektur ---------- */
+
+@Composable
+private fun Architectures() {
+    Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(Space.s)) {
+        Arch("VGG16", "16", "lapisan bertumpuk sederhana")
+        Arch("ResNet50", "50", "jalur pintas residual")
+        Arch("InceptionV3", "48", "filter paralel multi-ukuran")
+    }
+    Text(
+        "Semua memakai bobot pralatih ImageNet dan kepala yang sama: GAP → Dropout → Dense 256 → Dropout → Softmax 3 kelas.",
+        style = MaterialTheme.typography.bodySmall, color = Palette.TextMuted,
+    )
+}
+
+@Composable
+private fun RowScope.Arch(name: String, depth: String, idea: String) = Column(
+    Modifier.weight(1f).fillMaxHeight().clip(MaterialTheme.shapes.medium).background(Color.White)
+        .border(1.dp, Palette.Divider, MaterialTheme.shapes.medium).padding(Space.m),
+    horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp),
+) {
+    Text(depth, style = MaterialTheme.typography.headlineSmall, color = Palette.Accent)
+    Text("lapisan", style = MaterialTheme.typography.labelSmall, color = Palette.TextMuted)
+    Text(name, Modifier.padding(top = Space.xs), style = MaterialTheme.typography.titleSmall, textAlign = TextAlign.Center)
+    Text(idea, style = MaterialTheme.typography.bodySmall, color = Palette.TextMuted, textAlign = TextAlign.Center)
+}
+
+/* ---------- Pelatihan ---------- */
+
+@Composable
+private fun TwoPhase() {
+    Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(Space.s)) {
+        Phase("Fase 1", "Backbone dibekukan", "Hanya kepala dilatih", "lr 1e-3", Palette.SoftAccent, Palette.PrimaryPressed)
+        Phase("Fase 2", "Fine-tuning", "30% lapisan atas dibuka", "lr 1e-5", Palette.AccentSoft, Palette.Accent)
+    }
+    Text(
+        "Model terbaik dipilih dari val_loss terendah dengan early stopping. Augmentasi: rotasi, gamma, noise, perspektif, flip, kecerahan.",
+        style = MaterialTheme.typography.bodySmall, color = Palette.TextMuted,
+    )
+}
+
+@Composable
+private fun RowScope.Phase(tag: String, title: String, desc: String, lr: String, bg: Color, fg: Color) = Column(
+    Modifier.weight(1f).fillMaxHeight().clip(MaterialTheme.shapes.medium).background(bg).padding(Space.m),
+    verticalArrangement = Arrangement.spacedBy(2.dp),
+) {
+    Text(tag.uppercase(), style = MaterialTheme.typography.labelMedium, color = fg)
+    Text(title, style = MaterialTheme.typography.titleSmall)
+    Text(desc, style = MaterialTheme.typography.bodySmall, color = Palette.TextMuted)
+    Text(lr, Modifier.padding(top = Space.xs), style = MaterialTheme.typography.labelMedium, color = fg)
+}
+
+/* ---------- Skenario ---------- */
+
+private val scenarios = listOf(
+    "Baseline" to "Citra utuh 224 px (sesuai proposal)",
+    "Crop mata" to "Hanya area mata, luar lingkaran dihitamkan",
+    "K1" to "3 seed (42, 123, 2026) + uji McNemar",
+    "K2" to "Tanpa fine-tuning",
+    "K3" to "InceptionV3 pada 299 px",
+    "K4" to "Tanpa augmentasi",
+    "K5" to "Class weight + label smoothing",
+    "K6" to "Fine-tuning lebih dalam (60%)",
+    "K7" to "Skala thread CPU 1/2/4/8",
+    "K8" to "Mixed precision",
+    "Lapangan" to "Data primer dari pasar",
+)
+
+@Composable
+private fun Scenarios() = Column(verticalArrangement = Arrangement.spacedBy(Space.s)) {
+    scenarios.forEachIndexed { i, (code, desc) ->
+        val main = i < 2
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Space.m)) {
+            Box(
+                Modifier.width(76.dp).heightIn(min = 28.dp).clip(RoundedCornerShape(8.dp))
+                    .background(if (main) Palette.Primary else Palette.SoftAccent),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(code, style = MaterialTheme.typography.labelMedium, color = if (main) Color.White else Palette.PrimaryPressed)
+            }
+            Text(desc, Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
         }
     }
 }
 
+/* ---------- Ukuran ---------- */
+
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun Term(term: String, desc: String) = Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-    Text(term, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
-    Text(desc, style = MaterialTheme.typography.bodyMedium, color = Palette.TextMuted)
+private fun Measures() {
+    val items = listOf(
+        Triple(Icons.Outlined.Analytics, "Kinerja", "Accuracy, precision, recall, F1 macro, confusion matrix"),
+        Triple(Icons.Outlined.SyncAlt, "Generalisasi", "ΔF1 = F1 MFED − F1 FFE; makin kecil makin stabil"),
+        Triple(Icons.Outlined.Speed, "Efisiensi", "Parameter, ukuran berkas, waktu latih & inferensi (CPU 4 thread), memori"),
+        Triple(Icons.Outlined.Visibility, "Interpretasi", "Grad-CAM: apakah model melihat kornea & pupil"),
+    )
+    Column(verticalArrangement = Arrangement.spacedBy(Space.s)) {
+        items.chunked(2).forEach { pair ->
+            Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(Space.s)) {
+                pair.forEach { (ic, t, d) ->
+                    Column(
+                        Modifier.weight(1f).fillMaxHeight().clip(MaterialTheme.shapes.medium).background(Color.White)
+                            .border(1.dp, Palette.Divider, MaterialTheme.shapes.medium).padding(Space.m),
+                        verticalArrangement = Arrangement.spacedBy(Space.xs),
+                    ) {
+                        PlainIcon(ic, Palette.Accent, 22.dp)
+                        Text(t, style = MaterialTheme.typography.titleSmall)
+                        Text(d, style = MaterialTheme.typography.bodySmall, color = Palette.TextMuted)
+                    }
+                }
+            }
+        }
+    }
+}
+
+/* ---------- Aplikasi ---------- */
+
+@Composable
+private fun AppNotes() {
+    Note(Icons.Outlined.PhoneAndroid, "Model berjalan di ponsel (LiteRT), tanpa internet. Praproses identik dengan pelatihan dan diuji piksel per piksel.")
+    Note(Icons.Outlined.AccountTree, "Semua skor kelas ditampilkan, bukan hanya kelas teratas. Model bisa dipilih per skenario.")
+    Note(Icons.Outlined.Storefront, "Saat mengumpulkan data, label dipilih dulu; skor model baru tampil sesudahnya agar penilaian tidak terpengaruh.")
+    Note(Icons.Outlined.Lock, "Tanpa akun dan tanpa GPS. Yang diunggah hanya foto mata, label, jenis ikan, pasar, catatan, model ponsel, dan skor.")
+    Text(
+        "Alat pendukung penelitian, bukan pengganti pemeriksaan mutu ikan resmi.",
+        style = MaterialTheme.typography.bodySmall, color = Palette.TextMuted, fontWeight = FontWeight.Medium,
+    )
 }
 
 @Composable
-private fun Bullet(text: String) = Row {
-    Text("•", Modifier.width(16.dp), style = MaterialTheme.typography.bodyMedium, color = Palette.Accent)
-    Text(text, style = MaterialTheme.typography.bodyMedium)
+private fun Note(icon: ImageVector, text: String) = Row(horizontalArrangement = Arrangement.spacedBy(Space.m)) {
+    PlainIcon(icon, Palette.Accent, 20.dp)
+    Text(text, Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
 }

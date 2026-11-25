@@ -125,7 +125,7 @@ private fun jakarta() = FontFamily(
 private fun typography(): Typography {
     val f = jakarta()
     fun s(size: Int, line: Int, w: FontWeight, ls: Double = 0.0) =
-        TextStyle(fontFamily = f, fontSize = size.sp, lineHeight = line.sp, fontWeight = w, letterSpacing = ls.sp, color = Palette.Text)
+        TextStyle(fontFamily = f, fontSize = size.sp, lineHeight = line.sp, fontWeight = w, letterSpacing = ls.sp)
     return Typography(
         displaySmall = s(32, 40, FontWeight.Bold, -0.5),
         headlineLarge = s(28, 36, FontWeight.Bold, -0.4),
