@@ -25,11 +25,28 @@ ukuran berkas, dan benchmark inferensi CPU 4 thread tetap sebanding. Kode mendet
 | Dataset | Sumber | Berkas | Isi |
 |---|---|---|---|
 | MFED v2 | Mendeley Data 10.17632/67nmx3mhwh.2 | `Multistage Fish Eyes Dataset.zip` (3,7 GB) | 4.800 citra PNG: 1.600 Highly Fresh, 1.600 Fresh, 1.600 Not Fresh; 3.985 citra 1000×1000 px, 811 citra 500×500 px, 4 citra ±996–998 px |
-| FFE v1 | Mendeley Data 10.17632/xzyx7pbr3w.1 | folder `<Spesies> - <Kelas>` | 4.392 citra (diunduh per berkas) — *angka final dicatat setelah unduhan lengkap* |
+| FFE v1 | Mendeley Data 10.17632/xzyx7pbr3w.1 | 24 folder `<Spesies> - <Kelas>`, diunduh per berkas dengan verifikasi checksum | **4.390 citra** (sama dengan listing API Mendeley; deskripsi dataset menyebut 4.392 — selisih 2 berasal dari sumber). 1.764 Highly Fresh, 1.320 Fresh, 1.306 Not Fresh; 8 spesies |
 
 Observasi visual: citra MFED berupa **kepala ikan utuh** dengan latar; mata hanya ±15–25 % lebar
 citra dan posisinya bervariasi. Citra FFE sebagian besar sudah **dipotong rapat ke area mata**.
 Perbedaan pembingkaian ini menjadi alasan skenario "fokus mata" (bagian 4).
+
+### Komposisi FFE per spesies
+
+| Spesies | Highly Fresh | Fresh | Not Fresh | Total |
+|---|---|---|---|---|
+| Chanos chanos | 168 | 162 | 170 | 500 |
+| Eleutheronema tetradactylum | 80 | 80 | 80 | 240 |
+| Johnius trachycephalus | 80 | 80 | 80 | 240 |
+| Nibea albiflora | 173 | 125 | 121 | 419 |
+| Oreochromis mossambicus | 289 | 174 | 162 | 625 |
+| Oreochromis niloticus | 328 | 231 | 246 | 805 |
+| Rastrelliger faughni | 336 | 216 | 217 | 769 |
+| Upeneus moluccensis | 310 | 252 | 230 | 792 |
+| **Total** | **1.764** | **1.320** | **1.306** | **4.390** |
+
+Pemeriksaan FFE: 0 berkas rusak, 0 duplikat identik (SHA-256). FFE tidak seimbang antar kelas →
+metrik utama F1 macro (proposal 3.7.2).
 
 ## 2. Pemeriksaan dan pembersihan data MFED (proposal 3.5)
 
