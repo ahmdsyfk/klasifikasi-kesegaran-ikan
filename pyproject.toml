@@ -1,7 +1,7 @@
 [project]
 name = "klasifikasi-kesegaran-ikan"
 version = "0.1.0"
-description = "Perbandingan efisiensi VGG16, ResNet50, dan InceptionV3 untuk klasifikasi tingkat kesegaran ikan berdasarkan citra mata pada perangkat terbatas"
+description = "Perbandingan efisiensi VGG16, ResNet50, dan InceptionV3 untuk klasifikasi tingkat kesegaran ikan berdasarkan citra mata dengan inferensi di ponsel"
 authors = [{ name = "Ahmad Safrudin Kurniawan" }]
 requires-python = ">=3.13,<3.14"
 dependencies = [

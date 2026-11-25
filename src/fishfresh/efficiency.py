@@ -1,4 +1,4 @@
-"""Pengukuran efisiensi pada kondisi perangkat terbatas (proposal 3.7.3).
+"""Pengukuran efisiensi untuk inferensi di ponsel (proposal 3.7.3).
 
 - Jumlah parameter: model.count_params()
 - Ukuran berkas: model.keras (MB)

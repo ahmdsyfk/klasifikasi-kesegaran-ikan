@@ -1,7 +1,7 @@
 # Klasifikasi Kesegaran Ikan dari Citra Mata
 
 Kode penelitian **"Perbandingan Efisiensi Arsitektur VGG16, ResNet50, dan InceptionV3 untuk Klasifikasi
-Tingkat Kesegaran Ikan Berdasarkan Citra Mata pada Perangkat Terbatas"** (Ahmad Safrudin Kurniawan,
+Tingkat Kesegaran Ikan Berdasarkan Citra Mata dengan Inferensi di Ponsel"** (Ahmad Safrudin Kurniawan,
 Teknik Informatika IIB Darmajaya, 2026).
 
 - 3 kelas: **Sangat Segar** (Highly Fresh), **Segar** (Fresh), **Tidak Segar** (Not Fresh)

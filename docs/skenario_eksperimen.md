@@ -57,7 +57,7 @@ Dijalankan otomatis oleh `evaluate`.
   Model dengan ΔF1 terkecil dianggap paling stabil.
 - Tambahan: metrik **per spesies** FFE (`metrics_ffe.json → per_species`).
 
-### S3. Efisiensi pada perangkat terbatas (3.7.3)
+### S3. Efisiensi untuk inferensi di ponsel (3.7.3)
 
 ```bash
 uv run fishfresh benchmark
@@ -110,7 +110,7 @@ Prioritas: **★★★** sangat disarankan (memperkuat validitas), **★★** me
 | K8 | Mixed precision FP16 | `-c configs/skenario/k8_mixed_precision.yaml` | Mempercepat pelatihan di RTX 4060. Waktu latih dilaporkan terpisah dari baseline | ★ |
 | K9 | FFE tanpa citra tumpang-tindih | `uv run fishfresh evaluate --exclude-ffe-overlap` | Lihat risiko R2. Uji lintas dataset yang "bersih" | ★★★ |
 | K10 | FFE: spesies terlihat vs tak terlihat | analisis `per_species` | Membandingkan nila/mujair (kemungkinan juga ada di MFED) dengan 6 spesies laut yang belum pernah dilihat. Ini memisahkan *domain shift* kamera dari *species shift* | ★★★ |
-| K11 | Konversi TFLite / kuantisasi INT8 | (belum diimplementasi) | Langkah nyata menuju perangkat terbatas: ukuran turun ±4× dan latensi turun | ★ saran |
+| K11 | Konversi TFLite / kuantisasi INT8 | (belum diimplementasi) | Langkah nyata menuju inferensi di ponsel: ukuran turun ±4× dan latensi turun | ★ saran |
 | K12 | Pembanding model ringan (MobileNetV2/EfficientNetB0) | (belum diimplementasi; cukup tambah entri di `ARCHS`) | Pembanding efisiensi yang adil karena ketiga model proposal tergolong berat | ★ saran |
 | K13 | Validasi lapangan Pasar Natar | foto HP sendiri lalu `evaluate` | Uji generalisasi ke kondisi nyata yang menjadi motivasi proposal | ★ saran |
 
@@ -128,7 +128,7 @@ Prioritas: **★★★** sangat disarankan (memperkuat validitas), **★★** me
 | R6 | MFED berformat PNG dan berukuran besar (3,5 GB) | RAM penuh bila semua citra di-cache sebagai float | Cache disimpan **setelah** resize 224 (±600 KB/citra × 3.360 ≈ 2 GB). Bila RAM 16 GB kurang, hapus `.cache()` atau turunkan `batch_size` |
 | R7 | VRAM 8 GB tidak cukup untuk fine-tuning VGG16/ResNet50 dengan batch 32 | OOM | `--set train.batch_size=16` atau K8 (mixed precision) |
 | R8 | Pengukuran latensi berfluktuasi (thermal throttling laptop, proses latar) | Std besar | 3× proses baru, laporkan median & p95, colokkan charger, tutup aplikasi lain |
-| R9 | Simulasi CPU 4 thread ≠ Raspberry Pi (ARM, RAM 1–8 GB) | Klaim "perangkat terbatas" perlu dibatasi | Sesuai ruang lingkup 1.3 no. 6: sebut sebagai *simulasi*. K11 (TFLite) sebagai saran |
+| R9 | Simulasi CPU 4 thread ≠ Raspberry Pi (ARM, RAM 1–8 GB) | Klaim efisiensi di ponsel perlu dibatasi | Sesuai ruang lingkup 1.3 no. 6: sebut sebagai *simulasi*. K11 (TFLite) sebagai saran |
 | R10 | Versi Keras 3.15.1 di proposal vs TensorFlow yang terpasang | Inkompatibilitas | Sudah dikunci: `tensorflow==2.21.0`, `keras==3.15.1`, Python 3.13 (`uv.lock`) |
 
 ---

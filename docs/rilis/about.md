@@ -5,7 +5,7 @@ Buka repo → ikon ⚙️ di samping **About** (kanan atas) → isi:
 **Description**
 
 ```
-Perbandingan efisiensi VGG16, ResNet50, dan InceptionV3 untuk klasifikasi tingkat kesegaran ikan (Sangat Segar/Segar/Tidak Segar) berdasarkan citra mata pada perangkat terbatas — MFED + uji lintas dataset FFE.
+Perbandingan efisiensi VGG16, ResNet50, dan InceptionV3 untuk klasifikasi tingkat kesegaran ikan (Sangat Segar/Segar/Tidak Segar) berdasarkan citra mata dengan inferensi di ponsel — MFED + uji lintas dataset FFE.
 ```
 
 **Website**: kosongkan (atau tautan DOI dataset: `https://doi.org/10.17632/67nmx3mhwh.2`)

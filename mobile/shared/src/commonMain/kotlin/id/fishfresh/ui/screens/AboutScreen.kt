@@ -100,7 +100,7 @@ private fun StudentCard() = Panel(color = Color.White) {
         IdRow(
             "Skripsi",
             "Perbandingan Efisiensi Arsitektur VGG16, ResNet50, dan InceptionV3 untuk Klasifikasi Tingkat " +
-                "Kesegaran Ikan Berdasarkan Citra Mata untuk Inferensi di Ponsel",
+                "Kesegaran Ikan Berdasarkan Citra Mata dengan Inferensi di Ponsel",
         )
     }
 }
