@@ -55,7 +55,6 @@ import id.fishfresh.ui.components.Eyebrow
 import id.fishfresh.ui.components.Panel
 import id.fishfresh.ui.components.PlainIcon
 import id.fishfresh.ui.components.ScreenColumn
-import id.fishfresh.ui.components.ScreenHeader
 import id.fishfresh.ui.components.Section
 import id.fishfresh.ui.theme.Palette
 import id.fishfresh.ui.theme.Space
@@ -69,7 +68,6 @@ import id.fishfresh.ui.theme.softColor
  */
 @Composable
 fun AboutScreen() = ScreenColumn {
-    ScreenHeader("Tentang penelitian", eyebrow = "Penelitian skripsi · 2026")
     StudentCard()
     QuestionCard()
     Section(title = "Ciri mata ikan per kelas") { EyeTraits() }

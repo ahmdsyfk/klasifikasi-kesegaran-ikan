@@ -62,6 +62,7 @@ interface SyncScheduler {
     fun requestSync()
     /** Jumlah foto yang belum terunggah (untuk lencana). */
     fun observePending(): Flow<Int>
+    fun observeUploaded(): Flow<Int>
 }
 
 interface Platform {
@@ -71,4 +72,23 @@ interface Platform {
     fun uuid(): String
     fun today(): String
     fun formatTime(epochMs: Long): String
+}
+
+/** Alamat proyek Supabase. Hanya publishable/anon key; secret key tidak boleh masuk aplikasi. */
+data class BackendConfig(val url: String, val publishableKey: String) {
+    val enabled: Boolean get() = url.startsWith("https://") && publishableKey.isNotBlank()
+}
+
+/** Konfigurasi Supabase yang bisa diubah pengguna, dengan nilai bawaan dari build. */
+interface BackendSettings {
+    val defaults: BackendConfig
+    val state: StateFlow<BackendConfig>
+    fun save(config: BackendConfig)
+    fun reset()
+}
+
+data class BackendCheck(val name: String, val ok: Boolean, val detail: String)
+
+interface BackendProbe {
+    suspend fun test(): List<BackendCheck>
 }

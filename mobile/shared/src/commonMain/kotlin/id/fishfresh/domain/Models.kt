@@ -144,6 +144,7 @@ data class AppSettings(
     val fishCodeDate: String = "",
     val threads: Int = 4,
     val onboarded: Boolean = false,
+    val historyGrid: Boolean = false,
 )
 
 /** Hasil praproses satu foto untuk satu model. */

@@ -16,7 +16,7 @@ class IkanSegarApp : Application() {
         startKoin {
             androidContext(this@IkanSegarApp)
             workManagerFactory()
-            modules(sharedModule, androidModule(SupabaseConfig(BuildConfig.SUPABASE_URL, BuildConfig.SUPABASE_PUBLISHABLE_KEY)))
+            modules(sharedModule, androidModule(SupabaseConfig(BuildConfig.SUPABASE_URL, BuildConfig.SUPABASE_PUBLISHABLE_KEY), BuildConfig.MODEL_REGISTRY_URL))
         }
         // Unggah sisa antrean dari sesi sebelumnya (berjalan saat ada internet).
         get<SyncScheduler>().requestSync()

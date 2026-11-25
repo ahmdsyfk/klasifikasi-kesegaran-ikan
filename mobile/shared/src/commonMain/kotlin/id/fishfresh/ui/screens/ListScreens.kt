@@ -1,6 +1,24 @@
 package id.fishfresh.ui.screens
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.automirrored.outlined.ViewList
+import androidx.compose.material.icons.outlined.GridView
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextOverflow
+import id.fishfresh.domain.Prediction
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -72,9 +90,10 @@ fun DataScreen(vm: DataViewModel, formatTime: (Long) -> String, onCollect: () ->
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(start = Space.screen, end = Space.screen, top = Space.s, bottom = Space.xxl)) {
         item {
             Column(verticalArrangement = Arrangement.spacedBy(Space.section), modifier = Modifier.padding(bottom = Space.section)) {
-                ScreenHeader(
-                    "Data primer", eyebrow = if (st.settings.dataset == "primer_2") "Dataset Primer 2" else "Dataset Primer 1",
-                    subtitle = "Foto mata ikan dari pasar, diberi label oleh Anda.",
+                Text(
+                    (if (st.settings.dataset == "primer_2") "Dataset Primer 2" else "Dataset Primer 1") +
+                        " · foto mata ikan dari pasar, diberi label oleh Anda.",
+                    style = MaterialTheme.typography.bodyMedium, color = Palette.TextMuted,
                 )
                 Column(verticalArrangement = Arrangement.spacedBy(Space.s)) {
                     Row(horizontalArrangement = Arrangement.spacedBy(Space.s)) {
@@ -203,38 +222,126 @@ fun CaptureDetailScreen(vm: CaptureDetailViewModel, formatTime: (Long) -> String
 @Composable
 fun HistoryScreen(vm: HistoryViewModel, formatTime: (Long) -> String, onOpen: (Long) -> Unit) {
     val items by vm.items.collectAsState()
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(start = Space.screen, end = Space.screen, top = Space.s, bottom = Space.xxl)) {
-        item { ScreenHeader("Riwayat", subtitle = "Hasil pindai tersimpan di ponsel.", modifier = Modifier.padding(bottom = Space.l)) }
-        val list = items
-        if (list != null && list.isEmpty()) item {
+    val grid by vm.grid.collectAsState()
+    val list = items
+    LazyVerticalGrid(
+        columns = GridCells.Fixed(if (grid) 2 else 1),
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(start = Space.screen, end = Space.screen, top = Space.s, bottom = Space.xxl),
+        horizontalArrangement = Arrangement.spacedBy(Space.item),
+        verticalArrangement = Arrangement.spacedBy(Space.item),
+    ) {
+        item(span = { GridItemSpan(maxLineSpan) }) {
+            Row(Modifier.padding(bottom = Space.xs), verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    if (list.isNullOrEmpty()) "Hasil pindai tersimpan di ponsel." else "${list.size} hasil pindai tersimpan di ponsel.",
+                    Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium, color = Palette.TextMuted,
+                )
+                ViewToggle(grid, vm::setGrid)
+            }
+        }
+        if (list != null && list.isEmpty()) item(span = { GridItemSpan(maxLineSpan) }) {
             Column(Modifier.fillMaxWidth().padding(Space.xl), horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(Space.s)) {
                 PlainIcon(Icons.Outlined.History, Palette.TextMuted, 40.dp)
                 Text("Belum ada hasil pindai.", color = Palette.TextMuted)
             }
         }
-        items(list.orEmpty(), key = { it.id }) { r -> HistoryRow(r, formatTime) { onOpen(r.id) } }
+        items(list.orEmpty(), key = { it.id }) { r ->
+            if (grid) HistoryCard(r, formatTime) { onOpen(r.id) } else HistoryRow(r, formatTime) { onOpen(r.id) }
+        }
+    }
+}
+
+/** Pengalih kartu/list: dua ikon polos, yang aktif berwarna aksen. */
+@Composable
+private fun ViewToggle(grid: Boolean, onChange: (Boolean) -> Unit) = Row(
+    Modifier.clip(MaterialTheme.shapes.small).border(1.dp, Palette.Divider, MaterialTheme.shapes.small),
+) {
+    listOf(false to Icons.AutoMirrored.Outlined.ViewList, true to Icons.Outlined.GridView).forEach { (g, ic) ->
+        val on = g == grid
+        Box(
+            Modifier.size(44.dp).background(if (on) Palette.SoftAccent else Color.Transparent).clickable { onChange(g) },
+            contentAlignment = Alignment.Center,
+        ) { PlainIcon(ic, if (on) Palette.Primary else Palette.TextMuted, 22.dp, if (g) "Tampilan kartu" else "Tampilan list") }
+    }
+}
+
+/** Satu garis berisi ketiga skor kelas (lebar = skor), urutan tetap agar mudah dibandingkan antar-item. */
+@Composable
+private fun ScoreStrip(p: Prediction, modifier: Modifier = Modifier) = Row(
+    modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)).background(Palette.Divider),
+) {
+    FreshnessClass.entries.forEach { c ->
+        val v = p.scoreOf(c)
+        if (v > 0.005f) Box(Modifier.weight(v).fillMaxHeight().background(c.color()))
     }
 }
 
 @Composable
+private fun ScoreLegend(p: Prediction) = Row(horizontalArrangement = Arrangement.spacedBy(Space.m)) {
+    FreshnessClass.entries.forEach { c ->
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            Box(Modifier.size(8.dp).clip(RoundedCornerShape(2.dp)).background(c.color()))
+            Text(id.fishfresh.ui.components.pct(p.scoreOf(c), 0), style = MaterialTheme.typography.labelSmall, color = Palette.TextMuted)
+        }
+    }
+}
+
+private fun modelLabel(r: ScanRecord, p: Prediction) =
+    if (r.predictions.size > 1) "${p.scenarioName} · ${r.predictions.size} arsitektur" else "${p.archName} · ${p.scenarioName}"
+
+private val cardModifier: Modifier
+    @Composable get() = Modifier.fillMaxWidth().clip(MaterialTheme.shapes.large).background(Color.White)
+        .border(1.dp, Palette.Divider, MaterialTheme.shapes.large)
+
+/** Mode list: ringkas, satu baris per hasil. */
+@Composable
 private fun HistoryRow(r: ScanRecord, formatTime: (Long) -> String, onClick: () -> Unit) {
     val p = r.predictions.firstOrNull() ?: return
     Row(
-        Modifier.fillMaxWidth().clickable(onClick = onClick).padding(vertical = Space.m),
+        cardModifier.clickable(onClick = onClick).padding(Space.m),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Space.m),
     ) {
         EyeThumb(r.eyePath, 56.dp)
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
+                PlainIcon(p.top.cls.icon(), p.top.cls.color(), 18.dp)
+                Spacer(Modifier.width(6.dp))
                 Text(p.top.cls.labelId, Modifier.weight(1f), style = MaterialTheme.typography.titleMedium, color = p.top.cls.color())
-                Text(id.fishfresh.ui.components.pct(p.top.score), style = NumberStyle)
+                Text(id.fishfresh.ui.components.pct(p.top.score, 1), style = NumberStyle, fontWeight = FontWeight.Bold)
             }
-            ScoreBars(p, compact = true)
-            Text("${formatTime(r.createdAt)} · ${p.scenarioName} · " +
-                if (r.predictions.size > 1) "${r.predictions.size} arsitektur" else p.archName,
-                style = MaterialTheme.typography.bodySmall, color = Palette.TextMuted)
+            ScoreStrip(p)
+            Text("${modelLabel(r, p)} · ${formatTime(r.createdAt)}", style = MaterialTheme.typography.bodySmall,
+                color = Palette.TextMuted, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
     }
-    Hairline()
+}
+
+/** Mode kartu: foto mata besar di atas, kelas dan ketiga skor di bawahnya. */
+@Composable
+private fun HistoryCard(r: ScanRecord, formatTime: (Long) -> String, onClick: () -> Unit) {
+    val p = r.predictions.firstOrNull() ?: return
+    Column(cardModifier.clickable(onClick = onClick)) {
+        Box(Modifier.fillMaxWidth().aspectRatio(1f).background(Color.Black)) {
+            if (r.eyePath != null) AsyncImage("file://${r.eyePath}", null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+            Text(
+                id.fishfresh.ui.components.pct(p.top.score, 1),
+                Modifier.align(Alignment.TopEnd).padding(Space.s).clip(RoundedCornerShape(8.dp))
+                    .background(Color.White).padding(horizontal = 8.dp, vertical = 2.dp),
+                style = NumberStyle, fontWeight = FontWeight.Bold,
+            )
+        }
+        Column(Modifier.padding(Space.m), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                PlainIcon(p.top.cls.icon(), p.top.cls.color(), 16.dp)
+                Spacer(Modifier.width(4.dp))
+                Text(p.top.cls.labelId, style = MaterialTheme.typography.titleSmall, color = p.top.cls.color(), maxLines = 1)
+            }
+            ScoreStrip(p)
+            ScoreLegend(p)
+            Text(modelLabel(r, p), style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(formatTime(r.createdAt), style = MaterialTheme.typography.labelSmall, color = Palette.TextMuted)
+        }
+    }
 }

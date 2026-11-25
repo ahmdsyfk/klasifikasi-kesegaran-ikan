@@ -59,6 +59,7 @@ class CaptureRepositoryImpl(private val db: IkanSegarDb, private val photos: Pho
         q.captureById(id).asFlow().mapToOneOrNull(io).map { it?.toDomain() }
 
     fun observePending(): Flow<Int> = q.countPending().asFlow().mapToOne(io).map { it.toInt() }
+    fun observeUploaded(): Flow<Int> = q.countSynced().asFlow().mapToOne(io).map { it.toInt() }
 
     override suspend fun pending(): List<Capture> = withContext(io) { q.pendingCaptures().executeAsList().map { it.toDomain() } }
     override suspend fun add(capture: Capture) = withContext(io) { q.upsertCapture(capture.toRow()); Unit }

@@ -14,6 +14,14 @@ Teknik Informatika IIB Darmajaya, 2026).
 
 Skenario eksperimen beserta kemungkinan tambahannya: **[docs/skenario_eksperimen.md](docs/skenario_eksperimen.md)**.
 
+## Aplikasi Android
+
+Aplikasi **IkanSegar** menjalankan model di ponsel dan menampilkan skor ketiga kelas. Aplikasi ini juga dipakai untuk mengambil data primer di pasar: foto diberi label lalu diunggah ke Supabase. Model hasil penelitian diterbitkan sebagai rilis GitHub di repo ini, dan aplikasi mengunduhnya dari sana. Penjelasan lengkap dan tangkapan layar ada di **[mobile/README.md](mobile/README.md)**.
+
+| Pindai | Konfigurasi · Model | Tentang |
+| :---: | :---: | :---: |
+| <img src="docs/screenshots/01-pindai.png" width="220"> | <img src="docs/screenshots/04-konfigurasi-model.png" width="220"> | <img src="docs/screenshots/08-tentang-ciri-mata.png" width="220"> |
+
 ## Instalasi
 
 Membutuhkan [uv](https://docs.astral.sh/uv/). Python 3.13 akan diunduh otomatis oleh uv.

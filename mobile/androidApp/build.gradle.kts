@@ -23,6 +23,9 @@ android {
         versionName = "0.1.0"
         buildConfigField("String", "SUPABASE_URL", "\"${secret("SUPABASE_URL")}\"")
         buildConfigField("String", "SUPABASE_PUBLISHABLE_KEY", "\"${secret("SUPABASE_PUBLISHABLE_KEY")}\"")
+        // Registry model di GitHub Releases repo publik (lihat fishfresh.export_mobile --publish).
+        val modelsRepo = secret("IKANSEGAR_MODELS_REPO").ifBlank { "ahmdsyfk/klasifikasi-kesegaran-ikan" }
+        buildConfigField("String", "MODEL_REGISTRY_URL", "\"https://github.com/$modelsRepo/releases/download/registry/registry.json\"")
     }
 
     buildFeatures {

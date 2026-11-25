@@ -59,23 +59,11 @@ fun HomeScreen(
     vm: ModelViewModel,
     onCamera: () -> Unit,
     onGallery: () -> Unit,
-    onSettings: () -> Unit,
 ) {
     val st by vm.state.collectAsState()
     var picker by remember { mutableStateOf(false) }
 
     ScreenColumn {
-        // Identitas aplikasi + satu pintu ke Setelan
-        Row(Modifier.fillMaxWidth().padding(top = Space.m), verticalAlignment = Alignment.CenterVertically) {
-            Image(FishLogo, null, Modifier.size(40.dp))
-            Spacer(Modifier.width(Space.m))
-            Column(Modifier.weight(1f)) {
-                Text("IkanSegar", style = MaterialTheme.typography.titleLarge)
-                Text("Kesegaran ikan dari foto mata", style = MaterialTheme.typography.bodySmall, color = Palette.TextMuted)
-            }
-            IconButton(onClick = onSettings) { PlainIcon(Icons.Outlined.Settings, Palette.TextMuted, contentDescription = "Setelan") }
-        }
-
         // Aksi utama: satu tombol besar. Panduan langkah hanya muncul sampai pemindaian pertama.
         Panel(color = Color.White) {
             Text("Pindai mata ikan", style = MaterialTheme.typography.headlineSmall)
@@ -98,7 +86,7 @@ fun HomeScreen(
 @Composable
 private fun Steps() = Column(verticalArrangement = Arrangement.spacedBy(Space.m)) {
     listOf(
-        FishEyeIcon to "Arahkan kamera ke kepala ikan, mata di dalam lingkaran",
+        FishEyeIcon to "Posisikan mata ikan di dalam lingkaran",
         Icons.Outlined.CameraAlt to "Potret di cahaya cukup, hindari pantulan",
         Icons.Outlined.Insights to "Lihat skor ketiga kelas kesegaran",
     ).forEachIndexed { i, (icon, text) ->

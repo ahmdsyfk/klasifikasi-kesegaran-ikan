@@ -4,8 +4,6 @@ import android.content.Context
 import id.fishfresh.data.ml.LiteRtClassifier
 import id.fishfresh.data.ml.ModelFiles
 import id.fishfresh.data.ml.ModelSource
-import id.fishfresh.data.sync.ModelRow
-import id.fishfresh.data.sync.SupabaseGateway
 import id.fishfresh.domain.ModelEntry
 import id.fishfresh.domain.ModelMetrics
 import id.fishfresh.domain.ModelRegistry
@@ -18,6 +16,8 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -35,12 +35,14 @@ import java.security.MessageDigest
 import java.util.concurrent.TimeUnit
 
 /**
- * Registry model: model bawaan APK (berkas JSON di assets/models) + daftar dari tabel Supabase `models`.
- * Daftar disalin ke berkas agar bisa dipakai offline; berkas .tflite diunduh sekali lalu diverifikasi SHA-256.
+ * Registry model: model bawaan APK (assets/models) + daftar dari GitHub Releases repo model publik
+ * (`registry.json` di rilis bertag `registry`, diterbitkan oleh fishfresh.export_mobile --publish).
+ * Daftar disalin ke berkas agar bisa dipakai offline; berkas .tflite diunduh sekali dari aset rilis
+ * lalu diverifikasi SHA-256. Tidak butuh akun atau token.
  */
 class ModelRegistryImpl(
     private val context: Context,
-    private val gateway: SupabaseGateway,
+    private val registryUrl: String,
 ) : ModelRegistry, ModelFiles {
     private val dir = File(context.filesDir, "models").apply { mkdirs() }
     private val cacheFile = File(dir, "registry.json")
@@ -71,8 +73,8 @@ class ModelRegistryImpl(
 
     override suspend fun refresh(): Result<Unit> = withContext(Dispatchers.IO) {
         runCatching {
-            if (!gateway.config.enabled) return@runCatching
-            val remote = gateway.models().map { it.toEntry() }
+            if (!registryUrl.startsWith("https://")) return@runCatching
+            val remote = fetchRegistry()
             cacheFile.writeText(json.encodeToString(listSer, remote))
             val merged = merge(remote)
             _models.value = merged
@@ -81,6 +83,15 @@ class ModelRegistryImpl(
             val keep = merged.map { fileFor(it).name }.toSet()
             dir.listFiles { f -> f.extension == "tflite" && f.name !in keep }?.forEach { it.delete() }
         }
+    }
+
+    private fun fetchRegistry(): List<ModelEntry> {
+        val req = Request.Builder().url(registryUrl).header("Cache-Control", "no-cache").build()
+        val text = http.newCall(req).execute().use { resp ->
+            if (!resp.isSuccessful) error("Registry model tidak bisa diambil (${resp.code})")
+            resp.body?.string() ?: error("Registry kosong")
+        }
+        return json.decodeFromString(RegistryFile.serializer(), text).models.filter { it.active }.map { it.toEntry() }
     }
 
     override suspend fun ensureDownloaded(id: String): Result<Unit> = withContext(Dispatchers.IO) {
@@ -97,10 +108,8 @@ class ModelRegistryImpl(
 
     private suspend fun download(m: ModelEntry) {
         _states.update { it + (m.id to ModelState.Downloading(0f)) }
-        val token = gateway.accessToken()
-        val req = Request.Builder()
-            .url("${gateway.config.url}/storage/v1/object/authenticated/models/${m.filePath}")
-            .header("apikey", gateway.config.publishableKey).header("Authorization", "Bearer $token").build()
+        // filePath = URL aset rilis GitHub (diarahkan ulang ke CDN; OkHttp mengikuti redirect).
+        val req = Request.Builder().url(m.filePath).build()
         val tmp = File(dir, "${m.id}.part")
         http.newCall(req).execute().use { resp ->
             if (!resp.isSuccessful) error("Unduhan gagal (${resp.code})")
@@ -168,9 +177,37 @@ fun JsonObject.toMetrics(): ModelMetrics {
         (this["params"] as? JsonPrimitive)?.longOrNull)
 }
 
+/** Isi registry.json di rilis `registry`. */
+@Serializable
+data class RegistryFile(val schema: Int = 1, val updated: String? = null, val models: List<ModelRow> = emptyList())
+
+/** Satu baris registry; file_url = URL unduhan aset rilis. */
+@Serializable
+data class ModelRow(
+    val id: String,
+    val scenario: String,
+    @SerialName("scenario_name") val scenarioName: String,
+    @SerialName("scenario_desc") val scenarioDesc: String? = null,
+    val arch: String,
+    @SerialName("arch_name") val archName: String,
+    val seed: Int? = null,
+    @SerialName("input_variant") val inputVariant: String,
+    @SerialName("input_size") val inputSize: Int,
+    val classes: List<String>,
+    val quantization: String,
+    val version: String,
+    @SerialName("file_url") val fileUrl: String,
+    @SerialName("file_mb") val fileMb: Double,
+    @SerialName("file_sha256") val fileSha256: String,
+    val metrics: JsonObject = JsonObject(emptyMap()),
+    @SerialName("sort_order") val sortOrder: Int = 100,
+    @SerialName("is_default") val isDefault: Boolean = false,
+    val active: Boolean = true,
+)
+
 fun ModelRow.toEntry() = ModelEntry(
     id = id, scenario = scenario, scenarioName = scenarioName, scenarioDesc = scenarioDesc ?: "", arch = arch,
     archName = archName, seed = seed, inputVariant = inputVariant, inputSize = inputSize, classes = classes,
-    quantization = quantization, version = version, filePath = filePath, fileMb = fileMb, fileSha256 = fileSha256,
+    quantization = quantization, version = version, filePath = fileUrl, fileMb = fileMb, fileSha256 = fileSha256,
     metrics = metrics.toMetrics(), sortOrder = sortOrder, isDefault = isDefault,
 )

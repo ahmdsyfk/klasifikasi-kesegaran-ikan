@@ -3,6 +3,10 @@ package id.fishfresh.presentation
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import id.fishfresh.domain.AppSettings
+import id.fishfresh.domain.BackendCheck
+import id.fishfresh.domain.BackendConfig
+import id.fishfresh.domain.BackendProbe
+import id.fishfresh.domain.BackendSettings
 import id.fishfresh.domain.Capture
 import id.fishfresh.domain.CaptureRepository
 import id.fishfresh.domain.Classifier
@@ -152,8 +156,12 @@ class ResultViewModel(
     fun delete() = viewModelScope.launch { scans.delete(scanId) }
 }
 
-class HistoryViewModel(private val scans: ScanRepository) : ViewModel() {
+class HistoryViewModel(private val scans: ScanRepository, private val settings: SettingsStore) : ViewModel() {
     val items: StateFlow<List<ScanRecord>?> = scans.observe().stateIn(viewModelScope, SharingStarted.Eagerly, null)
+    /** Mode tampilan Riwayat (kartu atau list) diingat di setelan. */
+    val grid: StateFlow<Boolean> = settings.state.map { it.historyGrid }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, settings.state.value.historyGrid)
+    fun setGrid(on: Boolean) = settings.update { it.copy(historyGrid = on) }
 }
 
 // ------------------------------------------------------------------ Pengumpulan data primer
@@ -308,4 +316,82 @@ class SettingsViewModel(
     fun setDataset(v: String) = store.update { it.copy(dataset = v, fishCounter = 1) }
     fun setThreads(v: Int) = store.update { it.copy(threads = v) }
     fun setMarket(v: String) = store.update { it.copy(market = v) }
+}
+
+// ------------------------------------------------------------------ Konfigurasi Supabase
+data class BackendUiState(
+    val config: BackendConfig,
+    val isDefault: Boolean,
+    val testing: Boolean = false,
+    val checks: List<BackendCheck> = emptyList(),
+    val error: String? = null,
+    val savedMessage: String? = null,
+)
+
+class BackendViewModel(
+    private val settings: BackendSettings,
+    private val probe: BackendProbe,
+    private val sync: SyncScheduler,
+    private val registry: ModelRegistry,
+) : ViewModel() {
+    private val _ui = MutableStateFlow(uiFor(settings.state.value))
+    val ui: StateFlow<BackendUiState> = _ui.asStateFlow()
+    val pending = sync.observePending().stateIn(viewModelScope, SharingStarted.Eagerly, 0)
+    val uploaded = sync.observeUploaded().stateIn(viewModelScope, SharingStarted.Eagerly, 0)
+    val defaults get() = settings.defaults
+
+    private fun uiFor(c: BackendConfig) = BackendUiState(c, c == settings.defaults)
+
+    /** Key kosong = tetap memakai key yang aktif. */
+    fun save(url: String, key: String): Boolean {
+        val u = url.trim().trimEnd('/')
+        val k = key.trim().ifBlank { settings.state.value.publishableKey }
+        val err = when {
+            !u.startsWith("https://") -> "URL harus diawali https://"
+            k.isBlank() -> "Key belum diisi"
+            isSecretKey(k) -> "Ini secret/service key. Pakai publishable atau anon key saja."
+            else -> null
+        }
+        if (err != null) { _ui.update { it.copy(error = err) }; return false }
+        settings.save(BackendConfig(u, k))
+        applied("Konfigurasi disimpan")
+        return true
+    }
+
+    fun reset() { settings.reset(); applied("Kembali ke konfigurasi bawaan") }
+
+    fun clearError() = _ui.update { it.copy(error = null) }
+
+    fun syncNow() = sync.requestSync()
+
+    fun test() {
+        if (_ui.value.testing) return
+        _ui.update { it.copy(testing = true, checks = emptyList()) }
+        viewModelScope.launch {
+            val r = runCatching { probe.test() }.getOrElse { listOf(BackendCheck("Koneksi", false, it.message ?: "galat")) }
+            _ui.update { it.copy(testing = false, checks = r) }
+        }
+    }
+
+    private fun applied(msg: String) {
+        _ui.value = uiFor(settings.state.value).copy(savedMessage = msg)
+        sync.requestSync()
+        viewModelScope.launch { registry.refresh() }
+    }
+
+    companion object {
+        /** Secret key Supabase baru (sb_secret_) atau JWT lama dengan role service_role. */
+        fun isSecretKey(k: String): Boolean {
+            if (k.startsWith("sb_secret_")) return true
+            val parts = k.split('.')
+            if (parts.size != 3) return false
+            return runCatching {
+                @OptIn(kotlin.io.encoding.ExperimentalEncodingApi::class)
+                kotlin.io.encoding.Base64.UrlSafe.withPadding(kotlin.io.encoding.Base64.PaddingOption.ABSENT_OPTIONAL)
+                    .decode(parts[1]).decodeToString().contains("service_role")
+            }.getOrDefault(false)
+        }
+
+        fun mask(k: String): String = if (k.length <= 16) "••••" else k.take(12) + "••••" + k.takeLast(4)
+    }
 }

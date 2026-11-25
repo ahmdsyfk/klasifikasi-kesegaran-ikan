@@ -1,5 +1,9 @@
 package id.fishfresh.data.sync
 
+import id.fishfresh.domain.BackendCheck
+import id.fishfresh.domain.BackendConfig
+import id.fishfresh.domain.BackendProbe
+import id.fishfresh.data.BackendSettingsImpl
 import id.fishfresh.domain.Capture
 import id.fishfresh.domain.Platform
 import id.fishfresh.domain.Prediction
@@ -21,10 +25,8 @@ import kotlinx.serialization.json.JsonObject
 import java.io.File
 import kotlin.time.Duration.Companion.seconds
 
-/** Konfigurasi dari BuildConfig aplikasi (kosong = fitur Supabase dimatikan, aplikasi tetap jalan offline). */
-data class SupabaseConfig(val url: String, val publishableKey: String) {
-    val enabled: Boolean get() = url.startsWith("https://") && publishableKey.isNotBlank()
-}
+/** Konfigurasi aktif (bawaan build atau diubah di menu Supabase). Kosong = unggah dimatikan, aplikasi tetap jalan offline. */
+typealias SupabaseConfig = BackendConfig
 
 @Serializable
 data class CaptureDto(
@@ -69,37 +71,20 @@ data class PredictionDto(
     @SerialName("shown_before_label") val shownBeforeLabel: Boolean = false,
 )
 
-@Serializable
-data class ModelRow(
-    val id: String,
-    val scenario: String,
-    @SerialName("scenario_name") val scenarioName: String,
-    @SerialName("scenario_desc") val scenarioDesc: String? = null,
-    val arch: String,
-    @SerialName("arch_name") val archName: String,
-    val seed: Int? = null,
-    @SerialName("input_variant") val inputVariant: String,
-    @SerialName("input_size") val inputSize: Int,
-    val classes: List<String>,
-    val quantization: String,
-    val version: String,
-    @SerialName("file_path") val filePath: String,
-    @SerialName("file_mb") val fileMb: Double,
-    @SerialName("file_sha256") val fileSha256: String,
-    val metrics: JsonObject = JsonObject(emptyMap()),
-    @SerialName("sort_order") val sortOrder: Int = 100,
-    @SerialName("is_default") val isDefault: Boolean = false,
-)
-
 private fun isDuplicate(e: Throwable): Boolean {
     val m = (e.message ?: "") + ((e as? RestException)?.error ?: "")
     return listOf("duplicate", "already exists", "23505", "409").any { m.contains(it, ignoreCase = true) }
 }
 
 /** Satu-satunya pintu ke Supabase. Sesi anonim dibuat otomatis (tanpa layar login). */
-class SupabaseGateway(val config: SupabaseConfig, private val platform: Platform) {
+class SupabaseGateway(private val settings: BackendSettingsImpl, private val platform: Platform) : BackendProbe {
     private val mutex = Mutex()
-    private val client: SupabaseClient? = if (!config.enabled) null else createSupabaseClient(config.url, config.publishableKey) {
+    val config: SupabaseConfig get() = settings.state.value
+
+    /** Klien dibuat ulang bila konfigurasi diubah. */
+    private var built: Pair<SupabaseConfig, SupabaseClient?>? = null
+
+    private fun build(cfg: SupabaseConfig): SupabaseClient? = if (!cfg.enabled) null else createSupabaseClient(cfg.url, cfg.publishableKey) {
         // Jaringan pasar sering lambat: beri waktu lebih panjang dari bawaan 10 detik.
         requestTimeout = 30.seconds
         install(Auth)
@@ -108,16 +93,36 @@ class SupabaseGateway(val config: SupabaseConfig, private val platform: Platform
     }
 
     private suspend fun session(): SupabaseClient = mutex.withLock {
-        val c = client ?: error("Supabase belum dikonfigurasi")
+        val cfg = config
+        val cur = built?.takeIf { it.first == cfg } ?: (cfg to build(cfg)).also { built = it }
+        val c = cur.second ?: error("Supabase belum dikonfigurasi")
         c.auth.awaitInitialization()
+        // Sesi anonim tersimpan milik proyek lain tidak berlaku di proyek baru.
+        if (settings.sessionUrl != cfg.url) {
+            runCatching { c.auth.clearSession() }
+            settings.sessionUrl = cfg.url
+        }
         if (c.auth.currentSessionOrNull() == null) c.auth.signInAnonymously()
         c
     }
 
-    suspend fun accessToken(): String = session().auth.currentAccessTokenOrNull() ?: error("Sesi tidak tersedia")
+    override suspend fun test(): List<BackendCheck> {
+        if (!config.enabled) return listOf(BackendCheck("Konfigurasi", false, "URL atau key kosong"))
+        val out = mutableListOf<BackendCheck>()
+        val c = try {
+            session().also { out += BackendCheck("Masuk anonim", true, "sesi aktif") }
+        } catch (e: Throwable) {
+            return out + BackendCheck("Masuk anonim", false, e.short())
+        }
+        out += check("Tabel captures") { c.from("captures").select { limit(1) }; "dapat diakses" }
+        out += check("Bucket fish-eyes") { c.storage.from("fish-eyes").list(); "dapat diakses" }
+        return out
+    }
 
-    suspend fun models(): List<ModelRow> =
-        session().from("models").select().decodeList<ModelRow>()
+    private suspend fun check(name: String, block: suspend () -> String): BackendCheck =
+        try { BackendCheck(name, true, block()) } catch (e: Throwable) { BackendCheck(name, false, e.short()) }
+
+    private fun Throwable.short() = (message ?: this::class.simpleName ?: "galat").lineSequence().first().take(120)
 
     suspend fun upload(capture: Capture, rawPath: String, eyePath: String) {
         val c = session()

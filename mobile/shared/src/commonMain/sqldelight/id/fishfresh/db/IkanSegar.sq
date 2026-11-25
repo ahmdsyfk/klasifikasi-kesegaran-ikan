@@ -59,6 +59,9 @@ SELECT * FROM capture WHERE id = ?;
 pendingCaptures:
 SELECT * FROM capture WHERE sync_state != 'SYNCED' OR label_dirty = 1 ORDER BY captured_at;
 
+countSynced:
+SELECT COUNT(*) FROM capture WHERE sync_state = 'SYNCED' AND label_dirty = 0;
+
 countPending:
 SELECT COUNT(*) FROM capture WHERE sync_state != 'SYNCED' OR label_dirty = 1;
 

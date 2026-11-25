@@ -16,8 +16,9 @@ Contoh:
   uv run python -m fishfresh.export_mobile -c configs/eye_mask.yaml --bundle resnet50  # model bawaan APK
   uv run python -m fishfresh.export_mobile --demo                            # model dummy (debug)
 
---publish mengunggah ke Supabase (bucket `models` + tabel `models`); butuh SUPABASE_URL dan
-SUPABASE_SECRET_KEY di environment (lihat supabase_rest.py).
+--publish menerbitkan model ke GitHub Releases repo publik (default ahmdsyfk/klasifikasi-kesegaran-ikan,
+ubah lewat --repo atau IKANSEGAR_MODELS_REPO) dan memperbarui registry.json di rilis `registry`.
+Aplikasi membaca registry itu dan mengunduh model tanpa akun. Butuh `gh` dengan akses tulis ke repo.
 """
 
 from __future__ import annotations
@@ -25,7 +26,9 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import shutil
+import subprocess
 import time
 from datetime import UTC, datetime
 from pathlib import Path
@@ -196,34 +199,90 @@ def export_trained(cfg: dict, config_path: str, archs: list[str], seed: int, qua
     return done
 
 
-def publish(items: list[tuple[Path, dict]], default_arch: str | None) -> None:
-    from .supabase_rest import Supabase
+MODELS_REPO = os.environ.get("IKANSEGAR_MODELS_REPO", "ahmdsyfk/klasifikasi-kesegaran-ikan")
+REGISTRY_TAG = "registry"
 
-    sb = Supabase()
-    for path, meta in items:
-        if meta["file_mb"] > 50:
-            print(f"[lewati publish] {meta['id']}: {meta['file_mb']} MB > batas 50 MB paket Free "
-                  "(coba --quant dynamic, catat sebagai skenario kuantisasi)")
-            continue
-        obj = f"{meta['scenario']}/{meta['arch']}-s{meta['seed']}-{meta['file_sha256'][:12]}.tflite"
-        print(f"  unggah {obj}")
-        sb.upload("models", obj, path.read_bytes(), "application/octet-stream")
-        is_default = default_arch == meta["arch"]
-        if is_default:
-            sb.update("models", {"is_default": "true"}, {"is_default": False})
-        sb.upsert("models", {
-            "id": meta["id"], "scenario": meta["scenario"], "scenario_name": meta["scenario_name"],
-            "scenario_desc": meta["scenario_desc"], "arch": meta["arch"], "arch_name": meta["name"],
-            "seed": meta["seed"], "input_variant": meta["input_variant"],
-            "input_size": meta["input_size"], "classes": meta["classes"],
-            "quantization": meta["quantization"], "version": meta["version"], "file_path": obj,
-            "file_mb": meta["file_mb"], "file_sha256": meta["file_sha256"], "metrics": meta["metrics"],
-            "sort_order": 10 * (SCENARIO_ORDER.index(meta["scenario"])
-                                if meta["scenario"] in SCENARIO_ORDER else 50)
-                          + ARCH_ORDER.get(meta["arch"], 9),
-            "is_default": is_default, "active": True,
-        })
-        print(f"  registry: {meta['id']}{' (default)' if is_default else ''}")
+
+def _gh(*args: str, check: bool = True) -> subprocess.CompletedProcess:
+    return subprocess.run(["gh", *args], check=check, capture_output=True, text=True)
+
+
+def _release_notes(items: list[tuple[Path, dict]]) -> str:
+    m0 = items[0][1]
+    rows = ["| Arsitektur | F1 MFED | F1 FFE | ΔF1 | Latensi CPU 4 thread | Ukuran |", "|---|---|---|---|---|---|"]
+    for _, m in items:
+        x = m["metrics"]
+
+        def f(k, d=4, x=x):
+            return "-" if x.get(k) is None else f"{x[k]:.{d}f}"
+
+        rows.append(f"| {m['name']} | {f('f1_mfed')} | {f('f1_ffe')} | {f('delta_f1')} | "
+                    f"{f('latency_ms_cpu4', 1)} ms | {m['file_mb']} MB |")
+    return (f"Model {m0['scenario_name']} (seed {m0['seed']}), kuantisasi {m0['quantization']}, "
+            f"input {m0['input_variant']} {m0['input_size']} px.\n\n" + "\n".join(rows) +
+            "\n\nDiunduh otomatis oleh aplikasi IkanSegar lewat registry.json di rilis `registry`.")
+
+
+def publish(items: list[tuple[Path, dict]], default_arch: str | None, repo: str = MODELS_REPO) -> None:
+    """Terbitkan model ke GitHub Releases repo publik, lalu perbarui registry.json yang dibaca aplikasi.
+
+    - Rilis `model-<skenario>-s<seed>` berisi <id>.tflite tiap arsitektur.
+    - Rilis `registry` berisi registry.json (daftar semua model + URL unduhan + SHA-256).
+    Butuh `gh` yang login dengan akses tulis ke repo.
+    """
+    import tempfile
+
+    if not items:
+        print("[publish] tidak ada model untuk diterbitkan")
+        return
+    m0 = items[0][1]
+    tag = f"model-{m0['scenario']}-s{m0['seed']}"
+    if _gh("release", "view", tag, "--repo", repo, check=False).returncode != 0:
+        _gh("release", "create", tag, "--repo", repo, "--latest=false",
+            "--title", f"Model {m0['scenario_name']} · seed {m0['seed']}", "--notes", _release_notes(items))
+    else:
+        _gh("release", "edit", tag, "--repo", repo, "--notes", _release_notes(items))
+    _gh("release", "upload", tag, "--repo", repo, "--clobber", *[str(p) for p, _ in items])
+    print(f"  rilis {repo}@{tag}: {len(items)} model")
+
+    with tempfile.TemporaryDirectory() as td:
+        reg_path = Path(td) / "registry.json"
+        if _gh("release", "view", REGISTRY_TAG, "--repo", repo, check=False).returncode != 0:
+            _gh("release", "create", REGISTRY_TAG, "--repo", repo, "--latest=false", "--title", "Registry model",
+                "--notes", "registry.json: daftar model yang dibaca aplikasi IkanSegar. Jangan dihapus.")
+            registry = {"schema": 1, "models": []}
+        elif _gh("release", "download", REGISTRY_TAG, "--repo", repo, "-p", "registry.json", "-D", td,
+                 check=False).returncode == 0:
+            registry = json.loads(reg_path.read_text())
+        else:
+            registry = {"schema": 1, "models": []}
+
+        rows = {r["id"]: r for r in registry.get("models", [])}
+        for path, meta in items:
+            is_default = default_arch == meta["arch"]
+            if is_default:
+                for r in rows.values():
+                    r["is_default"] = False
+            rows[meta["id"]] = {
+                "id": meta["id"], "scenario": meta["scenario"], "scenario_name": meta["scenario_name"],
+                "scenario_desc": meta["scenario_desc"], "arch": meta["arch"], "arch_name": meta["name"],
+                "seed": meta["seed"], "input_variant": meta["input_variant"], "input_size": meta["input_size"],
+                "classes": meta["classes"], "quantization": meta["quantization"], "version": meta["version"],
+                "file_url": f"https://github.com/{repo}/releases/download/{tag}/{path.name}",
+                "file_mb": meta["file_mb"], "file_sha256": meta["file_sha256"], "metrics": meta["metrics"],
+                "sort_order": 10 * (SCENARIO_ORDER.index(meta["scenario"])
+                                    if meta["scenario"] in SCENARIO_ORDER else 50)
+                              + ARCH_ORDER.get(meta["arch"], 9),
+                "is_default": is_default or rows.get(meta["id"], {}).get("is_default", False),
+                "active": True,
+            }
+            print(f"  registry: {meta['id']}{' (default)' if is_default else ''}")
+        registry["models"] = sorted(rows.values(), key=lambda r: r["sort_order"])
+        registry["updated"] = datetime.now(UTC).isoformat(timespec="seconds")
+        registry["schema"] = 1
+        reg_path.write_text(json.dumps(registry, indent=2, ensure_ascii=False))
+        _gh("release", "upload", REGISTRY_TAG, "--repo", repo, "--clobber", str(reg_path))
+    print(f"  registry.json diperbarui: https://github.com/{repo}/releases/download/{REGISTRY_TAG}/registry.json")
 
 
 def bundle(items: list[tuple[Path, dict]], arch: str) -> None:
@@ -275,7 +334,8 @@ def main(argv: list[str] | None = None) -> None:
     ap.add_argument("--seed", type=int, default=None)
     ap.add_argument("--quant", choices=["float16", "dynamic", "none"], default="float16")
     ap.add_argument("--out", type=Path, default=DEFAULT_OUT)
-    ap.add_argument("--publish", action="store_true", help="unggah ke Supabase (bucket+tabel models)")
+    ap.add_argument("--publish", action="store_true", help="terbitkan ke GitHub Releases + perbarui registry.json")
+    ap.add_argument("--repo", default=MODELS_REPO, help="repo publik tujuan rilis model")
     ap.add_argument("--default", dest="default_arch", default=None,
                     help="tandai arsitektur ini sebagai model bawaan di aplikasi (dengan --publish)")
     ap.add_argument("--bundle", default=None, help="salin arsitektur ini ke aset APK")
@@ -291,7 +351,7 @@ def main(argv: list[str] | None = None) -> None:
     if a.bundle:
         bundle(items, a.bundle)
     if a.publish:
-        publish(items, a.default_arch)
+        publish(items, a.default_arch, a.repo)
 
 
 if __name__ == "__main__":

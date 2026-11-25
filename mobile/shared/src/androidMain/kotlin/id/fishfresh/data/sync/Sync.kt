@@ -61,6 +61,7 @@ class SyncSchedulerImpl(
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     override val configured: Boolean get() = gateway.config.enabled
     override fun observePending(): Flow<Int> = repo.observePending()
+    override fun observeUploaded(): Flow<Int> = repo.observeUploaded()
 
     override fun requestSync() {
         if (!configured) return

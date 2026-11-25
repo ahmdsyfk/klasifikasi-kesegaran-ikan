@@ -7,6 +7,8 @@ import android.graphics.Matrix
 import android.os.Build
 import androidx.exifinterface.media.ExifInterface
 import id.fishfresh.domain.AppSettings
+import id.fishfresh.domain.BackendConfig
+import id.fishfresh.domain.BackendSettings
 import id.fishfresh.domain.EyeCircle
 import id.fishfresh.domain.EyeCropResult
 import id.fishfresh.domain.ImageMath
@@ -43,6 +45,7 @@ class SettingsStoreImpl(context: Context) : SettingsStore {
         fishCodeDate = prefs.getString("fishCodeDate", "")!!,
         threads = prefs.getInt("threads", 4),
         onboarded = prefs.getBoolean("onboarded", false),
+        historyGrid = prefs.getBoolean("historyGrid", false),
     )
 
     @Synchronized
@@ -52,7 +55,8 @@ class SettingsStoreImpl(context: Context) : SettingsStore {
             .putString("modelId", s.modelId).putBoolean("compareArchs", s.compareArchs)
             .putString("dataset", s.dataset).putString("market", s.market).putString("lastSpecies", s.lastSpecies)
             .putInt("fishCounter", s.fishCounter).putString("fishCodeDate", s.fishCodeDate)
-            .putInt("threads", s.threads).putBoolean("onboarded", s.onboarded).apply()
+            .putInt("threads", s.threads).putBoolean("onboarded", s.onboarded)
+            .putBoolean("historyGrid", s.historyGrid).apply()
         flow.value = s
     }
 }
@@ -145,4 +149,31 @@ class PhotoStoreImpl(private val context: Context) : PhotoStore {
     }
 
     companion object { const val MAX_SIDE = 2048 }
+}
+
+/** Konfigurasi Supabase yang diubah pengguna; kosong = memakai nilai bawaan build. */
+class BackendSettingsImpl(context: Context, override val defaults: BackendConfig) : BackendSettings {
+    private val prefs = context.getSharedPreferences("backend", Context.MODE_PRIVATE)
+    private val flow = MutableStateFlow(load())
+    override val state: StateFlow<BackendConfig> = flow.asStateFlow()
+
+    /** URL proyek pemilik sesi anonim yang tersimpan. */
+    var sessionUrl: String?
+        get() = prefs.getString("sessionUrl", null) ?: defaults.url.ifBlank { null }
+        set(v) { prefs.edit().putString("sessionUrl", v).apply() }
+
+    private fun load() = BackendConfig(
+        url = prefs.getString("url", null) ?: defaults.url,
+        publishableKey = prefs.getString("key", null) ?: defaults.publishableKey,
+    )
+
+    override fun save(config: BackendConfig) {
+        prefs.edit().putString("url", config.url.trim().trimEnd('/')).putString("key", config.publishableKey.trim()).apply()
+        flow.value = load()
+    }
+
+    override fun reset() {
+        prefs.edit().remove("url").remove("key").apply()
+        flow.value = load()
+    }
 }

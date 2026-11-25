@@ -1,6 +1,12 @@
 package id.fishfresh
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -9,6 +15,7 @@ import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.CameraAlt
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material.icons.outlined.PhotoLibrary
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -47,7 +54,9 @@ import id.fishfresh.ui.screens.HistoryScreen
 import id.fishfresh.ui.screens.HomeScreen
 import id.fishfresh.ui.screens.ResultScreen
 import id.fishfresh.ui.screens.ReviewScreen
-import id.fishfresh.ui.screens.SettingsScreen
+import id.fishfresh.ui.screens.ConfigScreen
+import id.fishfresh.ui.components.FishLogo
+import id.fishfresh.ui.theme.Space
 import id.fishfresh.ui.theme.IkanSegarTheme
 import id.fishfresh.ui.theme.Palette
 import kotlinx.serialization.Serializable
@@ -58,8 +67,8 @@ import org.koin.core.parameter.parametersOf
 @Serializable object HomeRoute
 @Serializable object DataRoute
 @Serializable object HistoryRoute
-@Serializable object SettingsRoute
 @Serializable object AboutRoute
+@Serializable object ConfigRoute
 @Serializable data class CameraRoute(val collect: Boolean)
 @Serializable object ReviewRoute
 @Serializable object AnalyzeRoute
@@ -81,6 +90,7 @@ private val tabs = listOf(
     Tab(HomeRoute, "Pindai", Icons.Outlined.CameraAlt),
     Tab(DataRoute, "Data Primer", Icons.Outlined.PhotoLibrary),
     Tab(HistoryRoute, "Riwayat", Icons.Outlined.History),
+    Tab(ConfigRoute, "Konfigurasi", Icons.Outlined.Tune),
     Tab(AboutRoute, "Tentang", Icons.Outlined.Info),
 )
 
@@ -94,7 +104,11 @@ fun App() = IkanSegarTheme {
     val dest = entry?.destination
     val onTab = tabs.any { t -> dest?.hasRoute(t.route::class) == true }
     val title = when {
-        dest?.hasRoute(SettingsRoute::class) == true -> "Setelan"
+        dest?.hasRoute(HomeRoute::class) == true -> "IkanSegar"
+        dest?.hasRoute(DataRoute::class) == true -> "Data primer"
+        dest?.hasRoute(HistoryRoute::class) == true -> "Riwayat"
+        dest?.hasRoute(ConfigRoute::class) == true -> "Konfigurasi"
+        dest?.hasRoute(AboutRoute::class) == true -> "Tentang penelitian"
         dest?.hasRoute(ReviewRoute::class) == true -> "Periksa foto"
         dest?.hasRoute(ResultRoute::class) == true -> "Hasil"
         dest?.hasRoute(CollectRoute::class) == true -> "Data primer"
@@ -113,13 +127,19 @@ fun App() = IkanSegarTheme {
     Scaffold(
         containerColor = Palette.Background,
         topBar = {
-            if (title != null && !fullScreen) TopAppBar(
-                title = { Text(title) },
-                navigationIcon = {
-                    IconButton(onClick = { nav.popBackStack() }) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Kembali") }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Palette.Background),
-            )
+            // Satu top bar untuk semua layar, menempel di atas (isi yang digulir lewat di bawahnya).
+            // Tab: logo + judul + Setelan. Layar turunan: tombol kembali + judul.
+            if (title != null && !fullScreen) Column {
+                TopAppBar(
+                    title = { Text(title, style = MaterialTheme.typography.titleLarge) },
+                    navigationIcon = {
+                        if (onTab) Image(FishLogo, null, Modifier.padding(start = Space.screen, end = Space.m).size(32.dp))
+                        else IconButton(onClick = { nav.popBackStack() }) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Kembali") }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Palette.Background, scrolledContainerColor = Palette.Background),
+                )
+                HorizontalDivider(color = Palette.Divider, thickness = 1.dp)
+            }
         },
         bottomBar = {
             if (onTab) ShortNavigationBar(containerColor = Palette.Background) {
@@ -162,14 +182,14 @@ private fun AppNavHost(nav: NavHostController, session: CaptureSession, platform
     NavHost(nav, startDestination = HomeRoute) {
         composable<HomeRoute> {
             HomeScreen(koinViewModel(), onCamera = { openCamera(false) }, onGallery = openGallery,
-                onSettings = { nav.navigate(SettingsRoute) })
+                )
         }
         composable<DataRoute> {
             DataScreen(koinViewModel(), fmt, onCollect = { openCamera(true) }, onOpen = { nav.navigate(CaptureRoute(it)) })
         }
         composable<HistoryRoute> { HistoryScreen(koinViewModel(), fmt) { nav.navigate(ResultRoute(it)) } }
-        composable<SettingsRoute> { SettingsScreen(koinViewModel(), koinViewModel()) }
         composable<AboutRoute> { AboutScreen() }
+        composable<ConfigRoute> { ConfigScreen(koinViewModel(), koinViewModel(), koinViewModel()) }
         composable<CameraRoute> {
             CameraCapture(
                 session.mode,

@@ -160,7 +160,12 @@ fun Notice(text: String, modifier: Modifier = Modifier, warning: Boolean = true)
 }
 
 @Composable
-fun KeyValue(key: String, value: String, modifier: Modifier = Modifier) = Row(modifier.fillMaxWidth()) {
-    Text(key, Modifier.weight(1f), style = MaterialTheme.typography.bodySmall, color = Palette.TextMuted)
-    Text(value, style = NumberStyle.copy(fontSize = MaterialTheme.typography.bodySmall.fontSize))
-}
+fun KeyValue(key: String, value: String, modifier: Modifier = Modifier) =
+    Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Space.m)) {
+        // Label tidak pernah dipotong; nilai panjang turun ke baris berikutnya, rata kanan.
+        Text(key, style = MaterialTheme.typography.bodySmall, color = Palette.TextMuted, maxLines = 1, softWrap = false)
+        Text(
+            value, Modifier.weight(1f), textAlign = TextAlign.End,
+            style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium,
+        )
+    }
