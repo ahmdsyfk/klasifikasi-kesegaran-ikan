@@ -320,5 +320,7 @@ Data latih 3.351 citra, validasi 718 (split baseline dikurangi citra yang tersar
 | Arsitektur | Epoch fase 1 | Epoch fase 2 | Epoch terbaik fase 2 | val_loss terbaik | val_acc terbaik | Waktu latih | Rata-rata/epoch | Ukuran |
 |---|---|---|---|---|---|---|---|---|
 | VGG16 | 8 (ES; terbaik epoch 1, val_acc 51,3 %) | 30 (batas maks., tanpa ES) | 27 | 0,354 | 85,5 % | 281,1 menit | 444 s | 56,7 MB |
+| ResNet50 | 30 (tanpa ES; terbaik epoch 29, val_loss 0,610, val_acc 73,8 %) | 22 (ES) | 15 | 0,358 | 85,0 % | 115,5 menit | 133 s | 92,6 MB |
 
 Dibanding baseline VGG16 (val_acc 91,5 %), versi eye_mask 6 poin lebih rendah di validasi MFED.
+ResNet50 eye_mask: 85,0 % vs baseline 90,7 % (−5,7 poin). Fase 1 stabil (bukan masalah ES seperti VGG16). Akurasi latih fase 2 93 % → celah overfitting lebih besar daripada baseline. Dugaan: crop mata saja memuat lebih sedikit petunjuk khas MFED, sehingga akurasi in-domain turun. Pengaruhnya pada FFE akan terlihat di evaluasi.
