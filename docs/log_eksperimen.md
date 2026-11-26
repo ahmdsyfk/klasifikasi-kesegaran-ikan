@@ -230,6 +230,7 @@ Perkiraan total ±100 jam (±4–5 hari). Urutan mengikuti prioritas di `docs/sk
 | 2026-11-25 22:50 | 2 citra buram: kotak hanya menangkap pupil | tersaring oleh kriteria `buram` (var. Laplacian < 30) |
 | 2026-11-25 23:25 | Deteksi mata MFED selesai: 4.800/4.800 citra punya kandidat kotak (1 j 20 m di MPS). Rantai deteksi FFE macet karena skrip penunggu mendeteksi dirinya sendiri sebagai proses MFED | rantai dihentikan, deteksi FFE dijalankan langsung |
 | 2026-11-25 23:05 | Pelatihan & ROI berjalan bersamaan; menulis ulang split saat ResNet50/VGG16 baseline belum mulai berisiko data latih tidak konsisten | split eye_mask dipisah ke `data/splits_eye/`; `prepare` baseline dijalankan setelah pelatihan baseline selesai |
+| 2026-11-26 09:13 | F1 lintas dataset FFE baseline hanya 0,32–0,37, mendekati tebakan acak (0,33). Dicek: pemetaan folder FFE ke label benar (crosstab 1:1), uji MFED wajar (80–91 %, tanpa indikasi bocor). | Bukan bug. Ini temuan domain shift (spesies, kamera, dan latar FFE berbeda dari MFED). Dicatat sebagai hasil utama generalisasi. Skenario eye_mask menguji apakah fokus ke mata mengurangi penurunan ini. |
 
 ## 8. Hasil
 
@@ -247,3 +248,33 @@ Catatan: fase 1 (backbone beku) masih turun pelan sampai epoch 30; fine-tuning m
 Akurasi latih fase 2 (85–90 %) > validasi (±78 %) → indikasi overfitting ringan yang dihentikan early stopping.
 ResNet50: fine-tuning menaikkan val_acc dari 72 % → 90,7 % (akurasi latih 95 %); sejauh ini arsitektur terbaik di validasi.
 VGG16: fase 1 (beku) paling lemah (65,6 %), tetapi fine-tuning menaikkan val_acc ke 91,5 % (setara ResNet50). Fase 2 mencapai batas 30 epoch dengan val_loss masih turun (terbaik epoch 29), jadi VGG16 kemungkinan belum konvergen penuh. Ini keterbatasan batas epoch proposal, bukan kegagalan. Waktu latih VGG16 4,7× InceptionV3 di CPU M1.
+
+### 8.2 Evaluasi baseline seed 42 (2026-11-26 09:13): uji MFED dan lintas dataset FFE tanpa pelatihan ulang
+
+| Arsitektur | MFED Acc | MFED P | MFED R | MFED F1 | FFE Acc | FFE F1 | ΔF1 | Penurunan relatif |
+|---|---|---|---|---|---|---|---|---|
+| VGG16 | 90,69 % | 0,907 | 0,907 | **0,906** | 38,77 % | 0,339 | 0,567 | 62,6 % |
+| ResNet50 | 89,58 % | 0,898 | 0,896 | 0,895 | 40,75 % | **0,365** | 0,530 | 59,2 % |
+| InceptionV3 | 80,42 % | 0,806 | 0,804 | 0,800 | 34,15 % | 0,315 | **0,485** | 60,6 % |
+
+Uji MFED: n = 720. Uji FFE: n = 4.390. P, R, dan F1 memakai rata-rata makro.
+Subset bersama, yaitu citra yang juga lolos filter eye_mask (MFED 715, FFE 4.273), memberi angka hampir identik
+(selisih F1 ≤ 0,003) sehingga bisa dipakai sebagai pembanding adil terhadap eye_mask:
+- VGG16: 0,905 / 0,338
+- ResNet50: 0,897 / 0,365
+- InceptionV3: 0,803 / 0,316
+
+Confusion matrix FFE ResNet50 (baris = label sebenarnya [Sangat Segar, Segar, Tidak Segar]):
+[[1050, 566, 148], [605, 567, 148], [553, 581, 172]]. Model cenderung memprediksi "Sangat Segar" dan "Segar".
+Recall "Tidak Segar" hanya 13 %.
+
+### 8.3 Efisiensi baseline (CPU Apple M1, 4 thread, batch 1, 200 citra × 3 ulangan, warm-up 10)
+
+| Arsitektur | Parameter | Ukuran `.keras` | Latensi rata-rata | p95 | Throughput | Memori puncak (RSS) | Δ memori model |
+|---|---|---|---|---|---|---|---|
+| VGG16 | 14,85 jt | 56,7 MB | 193,7 ms | 228,8 ms | 5,2 citra/s | 813 MB | 159 MB |
+| ResNet50 | 24,11 jt | 92,6 MB | 71,7 ms | 94,7 ms | 14,1 citra/s | 802 MB | 266 MB |
+| InceptionV3 | 22,33 jt | 86,2 MB | **61,8 ms** | 79,5 ms | 16,2 citra/s | 815 MB | 263 MB |
+
+Ringkasan sementara: VGG16 memiliki F1 MFED tertinggi, tetapi 2,7–3,1× lebih lambat. ResNet50 memberi keseimbangan
+terbaik (F1 MFED 0,895, F1 FFE tertinggi, latensi 72 ms). InceptionV3 paling cepat, tetapi akurasinya paling rendah.
