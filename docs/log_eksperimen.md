@@ -278,3 +278,35 @@ Recall "Tidak Segar" hanya 13 %.
 
 Ringkasan sementara: VGG16 memiliki F1 MFED tertinggi, tetapi 2,7–3,1× lebih lambat. ResNet50 memberi keseimbangan
 terbaik (F1 MFED 0,895, F1 FFE tertinggi, latensi 72 ms). InceptionV3 paling cepat, tetapi akurasinya paling rendah.
+
+### 8.4 Grad-CAM dan uji McNemar baseline seed 42 (2026-11-26 09:27)
+
+Atensi Grad-CAM di area mata dihitung pada 300 citra uji MFED. Area mata berbentuk elips dari kotak OWLv2, dan
+rata-rata hanya mencakup 8,8 % luas citra. Rasio fokus = porsi energi CAM di mata ÷ porsi luas mata; nilai 1
+berarti atensi tersebar merata.
+
+| Arsitektur | Atensi di mata (rata-rata) | Median | Rasio fokus | Sangat Segar | Segar | Tidak Segar |
+|---|---|---|---|---|---|---|
+| VGG16 | 25,8 % | 22,9 % | 2,94× | 26,8 % | 29,7 % | 20,5 % |
+| ResNet50 | 22,8 % | 19,9 % | 2,60× | 23,5 % | 20,3 % | 24,4 % |
+| InceptionV3 | 15,1 % | 12,9 % | 1,72× | 13,4 % | 15,1 % | 17,1 % |
+
+Tafsiran: ketiga model memang lebih memperhatikan mata daripada rata-rata area lain (rasio > 1). Namun 74–85 %
+atensi tetap jatuh di luar mata, misalnya di kulit, insang, dan latar. Ini mendukung dugaan bahwa model baseline
+memanfaatkan petunjuk non-mata khas MFED, yang tidak berlaku di FFE (domain shift, lihat 8.2). Skenario eye_mask
+menguji hal ini.
+
+Uji McNemar berpasangan pada citra uji yang sama (α = 0,05):
+
+| Pasangan | Uji | A benar, B salah | A salah, B benar | p | Signifikan |
+|---|---|---|---|---|---|
+| InceptionV3 vs ResNet50 | MFED | 37 | 103 | 2,2·10⁻⁸ | ya (ResNet50 lebih baik) |
+| InceptionV3 vs VGG16 | MFED | 27 | 101 | 3,0·10⁻¹¹ | ya (VGG16 lebih baik) |
+| ResNet50 vs VGG16 | MFED | 41 | 49 | 0,461 | **tidak**, setara |
+| InceptionV3 vs ResNet50 | FFE | 566 | 856 | 1,5·10⁻¹⁴ | ya (ResNet50 lebih baik) |
+| InceptionV3 vs VGG16 | FFE | 772 | 975 | 1,3·10⁻⁶ | ya (VGG16 lebih baik) |
+| ResNet50 vs VGG16 | FFE | 688 | 601 | 0,017 | ya (ResNet50 lebih baik) |
+
+Kesimpulan baseline: di MFED, perbedaan VGG16 dan ResNet50 tidak signifikan. Di FFE, ResNet50 signifikan lebih baik,
+sementara latensinya 2,7× lebih cepat dari VGG16. File: `outputs/baseline/ringkasan.csv`, `uji_mcnemar.csv`,
+`seed42/<arsitektur>/gradcam/`.
