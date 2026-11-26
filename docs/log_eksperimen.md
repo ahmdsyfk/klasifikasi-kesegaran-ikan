@@ -378,3 +378,13 @@ InceptionV3 36,7 ms.
   F1 MFED turun.
 - Jadi penyebab utama domain shift tidak hanya latar, tetapi juga perbedaan tampilan mata antar spesies, kamera, dan
   pencahayaan. Stabilitasnya akan diuji di K1 (seed 123 dan 2026).
+
+### 8.7 K1 multi-seed: pelatihan (seed 123 dan 2026)
+
+Waktu latih K1 tidak sebanding dengan seed 42 karena mesin ikut dibebani proyek lain (lihat 7b).
+
+| Skenario | Seed | Arsitektur | Epoch F1/F2 | Epoch terbaik F2 | val_loss | val_acc | Waktu latih |
+|---|---|---|---|---|---|---|---|
+| baseline | 123 | VGG16 | 30 / 30 (tanpa ES) | 26 | 0,291 | 88,9 % | 531,6 menit* |
+
+\* waktu latih tidak sebanding dengan seed 42 (beban mesin).
