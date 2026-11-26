@@ -231,6 +231,7 @@ Perkiraan total ±100 jam (±4–5 hari). Urutan mengikuti prioritas di `docs/sk
 | 2026-11-25 23:25 | Deteksi mata MFED selesai: 4.800/4.800 citra punya kandidat kotak (1 j 20 m di MPS). Rantai deteksi FFE macet karena skrip penunggu mendeteksi dirinya sendiri sebagai proses MFED | rantai dihentikan, deteksi FFE dijalankan langsung |
 | 2026-11-25 23:05 | Pelatihan & ROI berjalan bersamaan; menulis ulang split saat ResNet50/VGG16 baseline belum mulai berisiko data latih tidak konsisten | split eye_mask dipisah ke `data/splits_eye/`; `prepare` baseline dijalankan setelah pelatihan baseline selesai |
 | 2026-11-26 09:13 | F1 lintas dataset FFE baseline hanya 0,32–0,37, mendekati tebakan acak (0,33). Dicek: pemetaan folder FFE ke label benar (crosstab 1:1), uji MFED wajar (80–91 %, tanpa indikasi bocor). | Bukan bug. Ini temuan domain shift (spesies, kamera, dan latar FFE berbeda dari MFED). Dicatat sebagai hasil utama generalisasi. Skenario eye_mask menguji apakah fokus ke mata mengurangi penurunan ini. |
+| 2026-11-26 14:20 | VGG16 eye_mask fase 1 berhenti dini di epoch 8. Loss latih epoch 1 sangat besar (5,11): kepala klasifikasi baru menerima fitur VGG16 tanpa normalisasi. val_loss epoch 1 (0,965) kebetulan menjadi yang terendah, sehingga ES patience 7 mengembalikan bobot epoch 1 (val_acc 51 %) sebagai awal fine-tuning. Di baseline, fase 1 VGG16 berjalan penuh 30 epoch. | Tidak diulang sekarang, karena protokol ES identik di kedua skenario dan fase 2 tetap konvergen (85,5 %). Dicatat sebagai faktor pengganggu perbandingan VGG16 baseline vs eye_mask. Opsi lanjutan (bila waktu cukup): ulang VGG16 eye_mask dengan `EarlyStopping(start_from_epoch=3)` di fase 1 untuk kedua skenario. |
 
 ## 8. Hasil
 
@@ -243,6 +244,7 @@ Perkiraan total ±100 jam (±4–5 hari). Urutan mengikuti prioritas di `docs/sk
 | InceptionV3 | 30 (tanpa ES, val_loss 0,755, val_acc 63,6 %) | 17 (berhenti dini) | 10 | 0,500 | 78,8 % | 89,4 menit | 114 s | 22,33 jt / 13,73 jt (26 lapisan berbobot dibuka) | 86,2 MB |
 | ResNet50 | 22 (berhenti dini; terbaik epoch 15: val_loss 0,613, val_acc 72,1 %) | 23 (berhenti dini) | 16 | 0,274 | 90,7 % | 109,9 menit | 146 s | 24,11 jt / 17,71 jt (16 lapisan berbobot dibuka) | 92,6 MB |
 | VGG16 | 30 (tanpa ES; val_loss 0,906, val_acc 65,6 %) | 30 (tanpa ES, batas maks.) | 29 | 0,229 | 91,5 % | 419,1 menit | 419 s | 14,85 jt / 9,57 jt (4 lapisan berbobot dibuka) | 56,7 MB |
+
 
 Catatan: fase 1 (backbone beku) masih turun pelan sampai epoch 30; fine-tuning menaikkan val_acc ±15 poin.
 Akurasi latih fase 2 (85–90 %) > validasi (±78 %) → indikasi overfitting ringan yang dihentikan early stopping.
@@ -310,3 +312,13 @@ Uji McNemar berpasangan pada citra uji yang sama (α = 0,05):
 Kesimpulan baseline: di MFED, perbedaan VGG16 dan ResNet50 tidak signifikan. Di FFE, ResNet50 signifikan lebih baik,
 sementara latensinya 2,7× lebih cepat dari VGG16. File: `outputs/baseline/ringkasan.csv`, `uji_mcnemar.csv`,
 `seed42/<arsitektur>/gradcam/`.
+
+### 8.5 Pelatihan eye_mask seed 42
+
+Data latih 3.351 citra, validasi 718 (split baseline dikurangi citra yang tersaring).
+
+| Arsitektur | Epoch fase 1 | Epoch fase 2 | Epoch terbaik fase 2 | val_loss terbaik | val_acc terbaik | Waktu latih | Rata-rata/epoch | Ukuran |
+|---|---|---|---|---|---|---|---|---|
+| VGG16 | 8 (ES; terbaik epoch 1, val_acc 51,3 %) | 30 (batas maks., tanpa ES) | 27 | 0,354 | 85,5 % | 281,1 menit | 444 s | 56,7 MB |
+
+Dibanding baseline VGG16 (val_acc 91,5 %), versi eye_mask 6 poin lebih rendah di validasi MFED.
