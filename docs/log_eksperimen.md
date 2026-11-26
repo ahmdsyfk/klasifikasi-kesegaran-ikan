@@ -388,5 +388,6 @@ Waktu latih K1 tidak sebanding dengan seed 42 karena mesin ikut dibebani proyek 
 |---|---|---|---|---|---|---|---|
 | baseline | 123 | VGG16 | 30 / 30 (tanpa ES) | 26 | 0,291 | 88,9 % | 531,6 menit* |
 | baseline | 123 | ResNet50 | 21 / 13 (ES di kedua fase) | 6 | 0,499 | 79,2 % | 76,8 menit |
+| baseline | 123 | InceptionV3 | 30 / 17 (ES di F2) | 10 | 0,549 | 75,7 % | 70,3 menit |
 
 \* waktu latih tidak sebanding dengan seed 42 (beban mesin).
