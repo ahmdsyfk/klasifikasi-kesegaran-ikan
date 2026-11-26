@@ -221,7 +221,9 @@ Perkiraan total ±100 jam (±4–5 hari). Urutan mengikuti prioritas di `docs/sk
 |---|---|---|---|---|---|---|---|---|---|
 | InceptionV3 | 30 (tanpa ES, val_loss 0,755, val_acc 63,6 %) | 17 (berhenti dini) | 10 | 0,500 | 78,8 % | 89,4 menit | 114 s | 22,33 jt / 13,73 jt (26 lapisan berbobot dibuka) | 86,2 MB |
 | ResNet50 | 22 (berhenti dini; terbaik epoch 15: val_loss 0,613, val_acc 72,1 %) | 23 (berhenti dini) | 16 | 0,274 | 90,7 % | 109,9 menit | 146 s | 24,11 jt / 17,71 jt (16 lapisan berbobot dibuka) | 92,6 MB |
+| VGG16 | 30 (tanpa ES; val_loss 0,906, val_acc 65,6 %) | 30 (tanpa ES, batas maks.) | 29 | 0,229 | 91,5 % | 419,1 menit | 419 s | 14,85 jt / 9,57 jt (4 lapisan berbobot dibuka) | 56,7 MB |
 
 Catatan: fase 1 (backbone beku) masih turun pelan sampai epoch 30; fine-tuning menaikkan val_acc ±15 poin.
 Akurasi latih fase 2 (85–90 %) > validasi (±78 %) → indikasi overfitting ringan yang dihentikan early stopping.
 ResNet50: fine-tuning menaikkan val_acc dari 72 % → 90,7 % (akurasi latih 95 %); sejauh ini arsitektur terbaik di validasi.
+VGG16: fase 1 (beku) paling lemah (65,6 %), tetapi fine-tuning menaikkan val_acc ke 91,5 % (setara ResNet50). Fase 2 mencapai batas 30 epoch dengan val_loss masih turun (terbaik epoch 29), jadi VGG16 kemungkinan belum konvergen penuh. Ini keterbatasan batas epoch proposal, bukan kegagalan. Waktu latih VGG16 4,7× InceptionV3 di CPU M1.
