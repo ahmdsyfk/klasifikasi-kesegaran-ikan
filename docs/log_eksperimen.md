@@ -141,7 +141,27 @@ Pemeriksaan visual grid QA (kotak terpilih + hasil crop):
 - **Paling gelap** (kecerahan 22–29): mata masih jelas terlihat → ambang gelap dibuat sangat rendah
   (< 15) agar hanya citra nyaris hitam yang dibuang.
 
-*Jumlah final citra yang dibuang per kriteria dicatat setelah deteksi seluruh MFED dan FFE selesai.*
+### Jumlah final citra dibuang (2026-11-26 08:46, `prepare -c configs/eye_mask.yaml`)
+
+Deteksi OWLv2 selesai untuk 9.190 citra unik (MFED 4.800 + FFE 4.390). Sebanyak 33 citra FFE tidak menghasilkan
+kotak sama sekali.
+
+| Kriteria | MFED | FFE |
+|---|---|---|
+| mata_tidak_terdeteksi | 0 | 39 |
+| mata_terlalu_kecil | 0 | 3 |
+| buram | 16 | 54 |
+| mata_terlalu_kecil + buram | 0 | 21 |
+| terlalu_gelap/terlalu_terang/exposure | 0 | 0 |
+| **Total dibuang** | **16 (0,33 %)** | **117 (2,67 %)** |
+| Sisa | 4.784 | 4.273 |
+
+Skenario baseline mengikuti proposal tanpa filter kualitas: MFED 4.800 dan FFE 4.390 citra utuh. Tidak ada duplikat
+identik maupun hampir-duplikat antara MFED dan FFE. Split MFED eye_mask seed 42 setelah filter: latih 3.351, validasi
+718, uji 715, dengan kelas tetap seimbang (±1/3). Pemeriksaan otomatis memastikan assignment split baseline identik
+dengan split sebelum filter (4.800 = 4.800 baris, sama = True), jadi data eye_mask adalah himpunan bagian dari split
+baseline.
+FFE yang dipakai eye_mask: 4.273 citra (Sangat Segar 1.717, Segar 1.278, Tidak Segar 1.278).
 
 ## 6. Augmentasi (proposal 2.7, Gambar 4)
 
