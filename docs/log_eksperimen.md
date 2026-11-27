@@ -216,7 +216,7 @@ Estimasi kecepatan di M1 (diukur 2026-11-25, batch 32, saat proses lain berjalan
 | 10 | K5 class weight + label smoothing | | ±10 jam |
 | 11 | K7 skala thread 1/2/8 | benchmark saja | ±1 jam |
 | — | K8 mixed precision | **dihapus** (27 Nov 2026, keputusan pemilik): skenario khusus GPU RTX/CUDA, tidak relevan untuk pelatihan di CPU | — |
-| — | K9 FFE tanpa tumpang-tindih, K10 per spesies | analisis dari `pred_ffe.csv` + `per_species` (tanpa latih ulang) | — |
+| — | K9 FFE tanpa tumpang-tindih, K10 per spesies | analisis dari `pred_ffe.csv` (tanpa latih ulang), `scripts/analisis_k9_k10.py`; hasil di 8.8 | — |
 | — | K11–K13 | saran penelitian lanjutan (TFLite diekspor oleh modul aplikasi) | — |
 
 Perkiraan total ±100 jam (±4–5 hari). Urutan mengikuti prioritas di `docs/skenario_eksperimen.md`
@@ -400,3 +400,43 @@ dengan ES). Penyebab tidak tercatat. Mesin saat itu sedang sangat sibuk (load av
 Antrean lanjutan langsung menjalankan K14 (13:13). Sisa antrean utama dipindahkan ke `scripts/antrian_sisa.sh` dan
 berjalan setelah K14 selesai. ResNet50 dan InceptionV3 seed 2026 dilatih ulang dari awal dengan seed yang sama,
 lalu dilanjutkan dengan evaluasi K1, K1 eye_mask, ablasi K2–K6, dan K7.
+
+### 8.8 K9 dan K10: analisis tanpa latih ulang (2026-11-27)
+
+Skrip: `scripts/analisis_k9_k10.py` → `outputs/k9_overlap_ffe.csv`, `outputs/k10_spesies.csv`,
+`outputs/k10_per_spesies.csv`. Hanya memakai prediksi yang sudah ada (`pred_ffe.csv`), jadi tidak mengganggu antrean.
+
+**K9 tumpang-tindih FFE–MFED.** Tidak ada citra FFE yang identik (SHA-256) maupun hampir identik (pHash Hamming ≤ 4,
+ambang `prepare`) dengan MFED. Uji sensitivitas jarak Hamming minimum tiap citra FFE ke seluruh MFED:
+
+| Ambang Hamming | Citra FFE di bawah ambang (dari 4.390) |
+|---|---|
+| 0 / 4 | 0 / 0 |
+| 8 | 3 |
+| 10 | 27 |
+| 12 | 234 |
+
+Jarak minimum 8, median 16. Jarak 8–12 pada pHash 64-bit lazim untuk foto berbeda dengan komposisi mirip, bukan
+duplikat. Jadi `evaluate --exclude-ffe-overlap` identik dengan evaluasi FFE biasa, dan risiko R2 (hasil FFE terlalu
+optimistis karena citra bocor) **tidak terjadi**.
+
+**K10 spesies terlihat vs tak terlihat (seed 42).** "Terlihat" = nila dan mujair (MFED berisi dua spesies air tawar);
+"tak terlihat" = 6 spesies laut.
+
+| Skenario | Arsitektur | F1 FFE semua | F1 terlihat | F1 tak terlihat | Selisih |
+|---|---|---|---|---|---|
+| baseline | VGG16 | 0,339 | 0,400 | 0,298 | +0,102 |
+| baseline | ResNet50 | 0,365 | 0,402 | 0,348 | +0,053 |
+| baseline | InceptionV3 | 0,315 | 0,292 | 0,309 | −0,017 |
+| eye_mask | VGG16 | 0,350 | 0,427 | 0,314 | +0,112 |
+| eye_mask | ResNet50 | 0,313 | 0,390 | 0,275 | +0,115 |
+| eye_mask | InceptionV3 | 0,336 | 0,375 | 0,319 | +0,056 |
+
+Kesimpulan sementara:
+- Di 5 dari 6 model, F1 spesies terlihat lebih tinggi 0,05–0,12 daripada spesies laut. Jadi *species shift* memang
+  menyumbang penurunan.
+- Namun spesies terlihat pun hanya mencapai F1 0,29–0,43, jauh di bawah uji MFED (0,8–0,9). Penyumbang terbesar tetap
+  *domain shift* kamera, pencahayaan, dan latar, bukan spesies.
+- Pada eye_mask, keunggulan spesies terlihat lebih konsisten (+0,06 s.d. +0,12). Masuk akal: tampilan mata nila/mujair
+  di FFE lebih mirip dengan MFED daripada mata ikan laut.
+- Baru seed 42. Analisis akan diulang setelah evaluasi K1 (seed 123 dan 2026) selesai; cukup jalankan ulang skrip.
