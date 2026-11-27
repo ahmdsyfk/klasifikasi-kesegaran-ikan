@@ -1,0 +1,16 @@
+# K14 - Treatment overfitting (temuan K1: akurasi latih > validasi pada fase 2, mis. VGG16 seed 2026
+# 92,8 % vs 86,0 %; ResNet50 seed 123 val_acc 79 %). Dibandingkan langsung dengan baseline seed 42.
+#  - augmentasi lebih kuat (juga ditujukan ke domain shift FFE: warna/kecerahan/kamera berbeda)
+#  - label smoothing 0.1 (keyakinan berlebih pada batas Sangat Segar/Segar)
+#  - AdamW dengan weight decay terpisah
+run_name: k14_regularisasi
+augment:
+  rotation_deg: 25
+  gamma_range: [0.7, 1.3]
+  noise_std: 0.05
+  perspective: 0.15
+  brightness: 0.2
+train:
+  optimizer: adamw
+  weight_decay: 0.05
+  label_smoothing: 0.1

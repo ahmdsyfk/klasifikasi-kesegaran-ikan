@@ -113,6 +113,7 @@ Prioritas: **★★★** sangat disarankan (memperkuat validitas), **★★** me
 | K11 | Konversi TFLite / kuantisasi INT8 | (belum diimplementasi) | Langkah nyata menuju inferensi di ponsel: ukuran turun ±4× dan latensi turun | ★ saran |
 | K12 | Pembanding model ringan (MobileNetV2/EfficientNetB0) | (belum diimplementasi; cukup tambah entri di `ARCHS`) | Pembanding efisiensi yang adil karena ketiga model proposal tergolong berat | ★ saran |
 | K13 | Validasi lapangan Pasar Natar | foto HP sendiri lalu `evaluate` | Uji generalisasi ke kondisi nyata yang menjadi motivasi proposal | ★ saran |
+| K14 | **Treatment overfitting**: augmentasi lebih kuat + label smoothing 0,1 + AdamW (weight decay 0,05) | `-c configs/skenario/k14_regularisasi.yaml` | Ditambahkan 27 Nov 2026 dari temuan K1 (selisih akurasi latih–validasi di fase 2). Juga menguji apakah augmentasi warna/kecerahan yang lebih kuat mengurangi domain shift ke FFE | ★★ |
 
 ---
 

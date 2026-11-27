@@ -59,9 +59,13 @@ def _class_weights(labels: np.ndarray, n_cls: int) -> dict[int, float]:
 def _compile(model, lr: float, cfg: dict):
     import keras
 
-    opt = {"adam": keras.optimizers.Adam, "sgd": keras.optimizers.SGD, "adamw": keras.optimizers.AdamW}[
-        cfg["train"]["optimizer"]
-    ](learning_rate=lr)
+    name = cfg["train"]["optimizer"]
+    kw = {}
+    if name == "adamw" and cfg["train"].get("weight_decay") is not None:
+        kw["weight_decay"] = float(cfg["train"]["weight_decay"])
+    opt = {"adam": keras.optimizers.Adam, "sgd": keras.optimizers.SGD, "adamw": keras.optimizers.AdamW}[name](
+        learning_rate=lr, **kw
+    )
     ls = cfg["train"].get("label_smoothing", 0.0)
     loss = (
         keras.losses.CategoricalCrossentropy(label_smoothing=ls)
