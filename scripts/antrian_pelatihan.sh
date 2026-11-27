@@ -63,7 +63,4 @@ run k5_cw_ls       uv run fishfresh all -c configs/skenario/k5_class_weight.yaml
 # 6. K7 skala thread inferensi (model baseline seed 42)
 for t in 1 2 8; do run "k7_thread$t" uv run fishfresh benchmark --set efficiency.threads=$t; done
 
-# K8 (mixed precision) hanya bermakna di GPU CUDA: di Mac/CPU kebijakan float16 dimatikan otomatis
-# sehingga hasilnya identik dengan baseline -> dilewati di mesin ini.
-log "K8 dilewati: mixed precision hanya untuk GPU CUDA (mesin ini CPU)"
 log "ANTREAN SELESAI"

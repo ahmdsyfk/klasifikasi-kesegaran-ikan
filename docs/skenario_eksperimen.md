@@ -107,7 +107,6 @@ Prioritas: **★★★** sangat disarankan (memperkuat validitas), **★★** me
 | K5 | Class weight + label smoothing | `-c configs/skenario/k5_class_weight.yaml` | MFED seimbang, tetapi bisa menjadi tidak seimbang setelah deduplikasi. Label smoothing membantu bila batas Sangat Segar/Segar kabur | ★ |
 | K6 | Fine-tuning lebih dalam (60%) | `-c configs/skenario/k6_finetune_dalam.yaml` | Sensitivitas terhadap jumlah lapisan yang dibuka | ★ |
 | K7 | Skala thread 1/2/4/8 | `for t in 1 2 8; do uv run fishfresh benchmark --set efficiency.threads=$t; done` | Kurva latensi terhadap jumlah core: perangkat murah bisa hanya punya 1–2 core | ★★ |
-| K8 | Mixed precision FP16 | `-c configs/skenario/k8_mixed_precision.yaml` | Mempercepat pelatihan di RTX 4060. Waktu latih dilaporkan terpisah dari baseline | ★ |
 | K9 | FFE tanpa citra tumpang-tindih | `uv run fishfresh evaluate --exclude-ffe-overlap` | Lihat risiko R2. Uji lintas dataset yang "bersih" | ★★★ |
 | K10 | FFE: spesies terlihat vs tak terlihat | analisis `per_species` | Membandingkan nila/mujair (kemungkinan juga ada di MFED) dengan 6 spesies laut yang belum pernah dilihat. Ini memisahkan *domain shift* kamera dari *species shift* | ★★★ |
 | K11 | Konversi TFLite / kuantisasi INT8 | (belum diimplementasi) | Langkah nyata menuju inferensi di ponsel: ukuran turun ±4× dan latensi turun | ★ saran |
@@ -127,7 +126,7 @@ Prioritas: **★★★** sangat disarankan (memperkuat validitas), **★★** me
 | R4 | **Batas Sangat Segar vs Segar kabur** (label berbasis waktu penyimpanan, bukan visual murni) | Kebingungan dua kelas tersebut di confusion matrix | Laporkan per kelas, Grad-CAM, dan K5 (label smoothing) |
 | R5 | **Pergeseran domain FFE** (kamera, pencahayaan, latar, 6 spesies laut) | F1 FFE bisa turun drastis (mis. ke 0,4–0,6) | Bukan kegagalan: inilah temuan penelitian. Analisis per spesies (K10) |
 | R6 | MFED berformat PNG dan berukuran besar (3,5 GB) | RAM penuh bila semua citra di-cache sebagai float | Cache disimpan **setelah** resize 224 (±600 KB/citra × 3.360 ≈ 2 GB). Bila RAM 16 GB kurang, hapus `.cache()` atau turunkan `batch_size` |
-| R7 | VRAM 8 GB tidak cukup untuk fine-tuning VGG16/ResNet50 dengan batch 32 | OOM | `--set train.batch_size=16` atau K8 (mixed precision) |
+| R7 | VRAM 8 GB tidak cukup untuk fine-tuning VGG16/ResNet50 dengan batch 32 | OOM | `--set train.batch_size=16` |
 | R8 | Pengukuran latensi berfluktuasi (thermal throttling laptop, proses latar) | Std besar | 3× proses baru, laporkan median & p95, colokkan charger, tutup aplikasi lain |
 | R9 | Simulasi CPU 4 thread ≠ Raspberry Pi (ARM, RAM 1–8 GB) | Klaim efisiensi di ponsel perlu dibatasi | Sesuai ruang lingkup 1.3 no. 6: sebut sebagai *simulasi*. K11 (TFLite) sebagai saran |
 | R10 | Versi Keras 3.15.1 di proposal vs TensorFlow yang terpasang | Inkompatibilitas | Sudah dikunci: `tensorflow==2.21.0`, `keras==3.15.1`, Python 3.13 (`uv.lock`) |

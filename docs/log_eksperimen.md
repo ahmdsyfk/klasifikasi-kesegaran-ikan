@@ -215,7 +215,7 @@ Estimasi kecepatan di M1 (diukur 2026-11-25, batch 32, saat proses lain berjalan
 | 9 | K6 fine-tuning 60 % | sensitivitas lapisan yang dibuka | ±11 jam |
 | 10 | K5 class weight + label smoothing | | ±10 jam |
 | 11 | K7 skala thread 1/2/8 | benchmark saja | ±1 jam |
-| — | K8 mixed precision | **dilewati**: hanya bermakna di GPU CUDA; di CPU dimatikan otomatis (hasil = baseline) | — |
+| — | K8 mixed precision | **dihapus** (27 Nov 2026, keputusan pemilik): skenario khusus GPU RTX/CUDA, tidak relevan untuk pelatihan di CPU | — |
 | — | K9 FFE tanpa tumpang-tindih, K10 per spesies | analisis dari `pred_ffe.csv` + `per_species` (tanpa latih ulang) | — |
 | — | K11–K13 | saran penelitian lanjutan (TFLite diekspor oleh modul aplikasi) | — |
 

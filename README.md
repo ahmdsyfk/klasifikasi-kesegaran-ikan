@@ -64,7 +64,7 @@ Untuk Jupyter: `uv run jupyter lab` (kernel memakai env yang sama).
 
 ```
 configs/default.yaml        konfigurasi utama (nilai proposal + asumsi bertanda)
-configs/skenario/*.yaml     skenario tambahan K2–K8
+configs/skenario/*.yaml     skenario tambahan K2–K7, K14
 src/fishfresh/
   data.py                   scan, verifikasi, SHA-256/pHash, dedup, split, tf.data
   augment.py                rotasi, gamma, noise, perspektif, flip, brightness
