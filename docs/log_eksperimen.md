@@ -393,3 +393,10 @@ Waktu latih K1 tidak sebanding dengan seed 42 karena mesin ikut dibebani proyek 
 | baseline | 2026 | VGG16 | 30 / 26 (ES di F2) | 19 | 0,317 | 86,7 % | 431,3 menit* |
 
 \* waktu latih tidak sebanding dengan seed 42 (beban mesin).
+
+**Gangguan antrean (2026-11-27 ~13:10).** Antrean utama (`scripts/antrian_pelatihan.sh`) berhenti tanpa sempat mencatat
+GAGAL ketika K1 baseline ResNet50 seed 2026 berada di fase 2 epoch 12 (val_acc 82,6 %, val_loss 0,464; fase 1 26 epoch
+dengan ES). Penyebab tidak tercatat. Mesin saat itu sedang sangat sibuk (load average ≈ 25 karena proyek lain).
+Antrean lanjutan langsung menjalankan K14 (13:13). Sisa antrean utama dipindahkan ke `scripts/antrian_sisa.sh` dan
+berjalan setelah K14 selesai. ResNet50 dan InceptionV3 seed 2026 dilatih ulang dari awal dengan seed yang sama,
+lalu dilanjutkan dengan evaluasi K1, K1 eye_mask, ablasi K2–K6, dan K7.
